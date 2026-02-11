@@ -67,7 +67,9 @@ export class ACPClient {
       };
 
       this.ws.onmessage = (event: WebSocketMessageEvent) => {
-        this.handleIncomingData(event.data as string);
+        const data = event.data as string;
+        console.warn('[ACP RAW] received:', data.substring(0, 150));
+        this.handleIncomingData(data);
       };
 
       this.ws.onerror = (event: any) => {
@@ -111,6 +113,7 @@ export class ACPClient {
     try {
       const parsed = JSON.parse(data);
       if (parsed && typeof parsed === 'object' && parsed.jsonrpc === '2.0') {
+        console.warn('[ACP] Dispatching message:', parsed.method || `response id=${parsed.id}`);
         this.dispatchMessage(parsed as ACPWireMessage);
         return;
       }

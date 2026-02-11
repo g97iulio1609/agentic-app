@@ -16,6 +16,7 @@ export interface InitializeParams {
 export interface SessionNewParams {
   cwd?: string;
   modeId?: string;
+  mcpServers?: Array<{ name: string; url: string }>;
 }
 
 export interface SessionLoadParams {
@@ -47,6 +48,8 @@ export interface SessionSetModeParams {
 export function buildInitializeParams(opts?: InitializeParams): JSONValue {
   const params: Record<string, JSONValue> = {};
 
+  params.protocolVersion = 1;
+
   const clientInfo = opts?.clientInfo ?? { name: 'Agmente RN', version: '1.0.0' };
   params.clientInfo = clientInfo as unknown as JSONValue;
 
@@ -61,7 +64,8 @@ export function buildInitializeParams(opts?: InitializeParams): JSONValue {
 
 export function buildSessionNewParams(opts?: SessionNewParams): JSONValue {
   const params: Record<string, JSONValue> = {};
-  if (opts?.cwd) params.cwd = opts.cwd;
+  params.cwd = opts?.cwd || '/tmp';
+  params.mcpServers = (opts?.mcpServers ?? []) as unknown as JSONValue;
   if (opts?.modeId) params.modeId = opts.modeId;
   return params as unknown as JSONValue;
 }
@@ -79,13 +83,20 @@ export function buildSessionResumeParams(opts: SessionResumeParams): JSONValue {
 }
 
 export function buildSessionPromptParams(opts: SessionPromptParams): JSONValue {
+  const promptArray: JSONValue[] = [
+    { type: 'text', text: opts.text },
+  ];
+
+  if (opts.images && opts.images.length > 0) {
+    for (const img of opts.images) {
+      promptArray.push({ type: 'image', mimeType: img.mimeType, data: img.data });
+    }
+  }
+
   const params: Record<string, JSONValue> = {
     sessionId: opts.sessionId,
-    text: opts.text,
+    prompt: promptArray,
   };
-  if (opts.images && opts.images.length > 0) {
-    params.images = opts.images as unknown as JSONValue;
-  }
   if (opts.commandName) params.commandName = opts.commandName;
   return params as unknown as JSONValue;
 }

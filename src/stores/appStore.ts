@@ -208,9 +208,11 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
       },
       onNotification: (method, params) => {
         get().appendLog(`← notification: ${method}`);
+        console.warn('[Store] notification:', method, JSON.stringify(params)?.substring(0, 200));
         // Handle session/update notifications
         if (method === 'session/update' || method === 'notifications/session/update') {
           const actions = parseSessionUpdate(params);
+          console.warn('[Store] parsed actions:', actions.length, actions.map(a => a.type).join(','));
           const state = get();
           const { messages, streamingMessageId, stopReason } = applySessionUpdate(
             state.chatMessages,
@@ -443,13 +445,41 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
 
     try {
       get().appendLog(`→ session/prompt: ${text.substring(0, 80)}`);
-      await _service.sendPrompt({
+      const response = await _service.sendPrompt({
         sessionId: state.selectedSessionId,
         text,
       });
+      // The response indicates the prompt is complete
+      const result = response.result as Record<string, JSONValue> | undefined;
+      const stopReason = result?.stopReason as string | undefined;
+      // Mark streaming as done
+      const currentState = get();
+      if (currentState.streamingMessageId) {
+        const idx = currentState.chatMessages.findIndex(m => m.id === currentState.streamingMessageId);
+        if (idx !== -1) {
+          const updatedMessages = [...currentState.chatMessages];
+          updatedMessages[idx] = { ...updatedMessages[idx], isStreaming: false };
+          set({ chatMessages: updatedMessages, isStreaming: false, streamingMessageId: null, stopReason: stopReason ?? 'end_turn' });
+        } else {
+          set({ isStreaming: false, streamingMessageId: null, stopReason: stopReason ?? 'end_turn' });
+        }
+      } else {
+        set({ isStreaming: false, stopReason: stopReason ?? 'end_turn' });
+      }
     } catch (error) {
-      get().appendLog(`✗ Prompt failed: ${(error as Error).message}`);
-      set({ isStreaming: false });
+      const errorMsg = (error as Error).message;
+      get().appendLog(`✗ Prompt failed: ${errorMsg}`);
+      // Show error as a system message in chat
+      const errorMessage: ChatMessage = {
+        id: uuidv4(),
+        role: 'system',
+        content: `⚠️ Error: ${errorMsg}`,
+        timestamp: new Date().toISOString(),
+      };
+      set(s => ({
+        chatMessages: [...s.chatMessages, errorMessage],
+        isStreaming: false,
+      }));
     }
   },
 

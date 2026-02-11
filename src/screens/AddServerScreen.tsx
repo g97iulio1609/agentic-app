@@ -51,15 +51,17 @@ export function AddServerScreen() {
   const isEditing = !!editingServer;
 
   const handleSave = useCallback(async () => {
-    if (!host.trim()) {
-      Alert.alert('Error', 'Host is required');
+    const hostValue = host.trim();
+    console.warn('[AddServer] handleSave called, host:', JSON.stringify(hostValue), 'name:', JSON.stringify(name));
+    if (!hostValue) {
+      Alert.alert('Missing Field', 'Please enter a host address (e.g. localhost:8765)');
       return;
     }
 
     const serverData = {
-      name: name.trim() || host.trim(),
+      name: name.trim() || hostValue,
       scheme,
-      host: host.trim(),
+      host: hostValue,
       token: token.trim(),
       cfAccessClientId: cfAccessClientId.trim(),
       cfAccessClientSecret: cfAccessClientSecret.trim(),
@@ -67,13 +69,19 @@ export function AddServerScreen() {
       serverType,
     };
 
-    if (isEditing && editingServer) {
-      await updateServer({ ...serverData, id: editingServer.id });
-    } else {
-      await addServer(serverData);
+    try {
+      console.warn('[AddServer] Saving server...', JSON.stringify(serverData));
+      if (isEditing && editingServer) {
+        await updateServer({ ...serverData, id: editingServer.id });
+      } else {
+        await addServer(serverData);
+      }
+      console.warn('[AddServer] Server saved, navigating back');
+      navigation.goBack();
+    } catch (error) {
+      console.warn('[AddServer] Error:', (error as Error).message);
+      Alert.alert('Error', `Failed to save server: ${(error as Error).message}`);
     }
-
-    navigation.goBack();
   }, [
     name,
     scheme,

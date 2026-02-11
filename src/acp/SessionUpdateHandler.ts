@@ -18,7 +18,71 @@ export function parseSessionUpdate(
 
   const actions: SessionUpdateAction[] = [];
 
-  // Handle different update types
+  // ACP standard format: params.update.sessionUpdate + params.update.content
+  const update = obj.update as Record<string, JSONValue> | undefined;
+  if (update && typeof update === 'object') {
+    const sessionUpdate = update.sessionUpdate as string | undefined;
+    const content = update.content as Record<string, JSONValue> | undefined;
+
+    if (sessionUpdate === 'agent_message_chunk' && content) {
+      const contentType = content.type as string | undefined;
+      if (contentType === 'text') {
+        actions.push({ type: 'appendText', text: (content.text as string) ?? '' });
+      } else if (contentType === 'tool_call' || contentType === 'toolCall') {
+        actions.push({
+          type: 'toolCall',
+          toolName: (content.name as string) ?? (content.toolName as string) ?? 'unknown',
+          input: typeof content.input === 'string' ? content.input : JSON.stringify(content.input ?? content.arguments ?? ''),
+        });
+      } else if (contentType === 'tool_result' || contentType === 'toolResult') {
+        actions.push({
+          type: 'toolResult',
+          result: typeof content.result === 'string' ? content.result : JSON.stringify(content.result ?? content.output ?? ''),
+        });
+      } else if (contentType === 'thought') {
+        actions.push({ type: 'thought', content: (content.text as string) ?? '' });
+      }
+      return actions;
+    }
+
+    // Gemini sends agent_thought_chunk as a separate event type
+    if (sessionUpdate === 'agent_thought_chunk' && content) {
+      const text = (content.text as string) ?? '';
+      if (text) {
+        actions.push({ type: 'thought', content: text });
+      }
+      return actions;
+    }
+
+    if (sessionUpdate === 'agent_message_start') {
+      // New message starting — no content yet
+      return actions;
+    }
+
+    if (sessionUpdate === 'agent_message_end') {
+      actions.push({ type: 'stop', reason: 'end_turn' });
+      return actions;
+    }
+
+    if (sessionUpdate === 'tool_call_start' && content) {
+      actions.push({
+        type: 'toolCall',
+        toolName: (content.name as string) ?? 'unknown',
+        input: typeof content.input === 'string' ? content.input : JSON.stringify(content.input ?? ''),
+      });
+      return actions;
+    }
+
+    if (sessionUpdate === 'tool_call_end' && content) {
+      actions.push({
+        type: 'toolResult',
+        result: typeof content.result === 'string' ? content.result : JSON.stringify(content.result ?? content.output ?? ''),
+      });
+      return actions;
+    }
+  }
+
+  // Fallback: legacy/generic format
   const kind = obj.kind as string | undefined;
 
   if (kind === 'text' || obj.text !== undefined) {

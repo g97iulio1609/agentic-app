@@ -114,7 +114,7 @@ export class ACPService {
   }
 
   async listSessions(): Promise<JSONRPCResponse> {
-    return this.sendRequest(ACPMethods.sessionList);
+    return this.sendRequest(ACPMethods.sessionList, {} as JSONValue);
   }
 
   async setMode(opts: SessionSetModeParams): Promise<JSONRPCResponse> {
