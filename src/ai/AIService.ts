@@ -2,13 +2,14 @@
  * Core AI service — creates provider models and streams chat completions.
  */
 
-import { streamText, type ModelMessage, type LanguageModel, type JSONValue } from 'ai';
+import { streamText, type ModelMessage, type LanguageModel, type JSONValue, stepCountIs } from 'ai';
 import { createOpenAI as createOpenAIProvider } from '@ai-sdk/openai';
 import { createAnthropic } from '@ai-sdk/anthropic';
 import { createGoogleGenerativeAI } from '@ai-sdk/google';
 import { createXai } from '@ai-sdk/xai';
 import { createOpenRouter } from '@openrouter/ai-sdk-provider';
 import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
+import { buildMCPTools } from '../mcp/MCPToolAdapter';
 
 // React Native needs expo/fetch for streaming support
 let expoFetch: typeof globalThis.fetch | undefined;
@@ -119,6 +120,8 @@ export function streamChat(
   onComplete: (stopReason: string) => void,
   onError: (error: Error) => void,
   onReasoning?: (text: string) => void,
+  onToolCall?: (toolName: string, args: string) => void,
+  onToolResult?: (toolName: string, result: string) => void,
 ): AbortController {
   const controller = new AbortController();
 
@@ -127,6 +130,10 @@ export function streamChat(
 
   // Build provider-specific options for reasoning
   const providerOptions = buildProviderOptions(config);
+
+  // Build MCP tools from connected servers
+  const mcpTools = buildMCPTools();
+  const hasTools = Object.keys(mcpTools).length > 0;
 
   // Fire-and-forget async IIFE — errors are forwarded via onError.
   (async () => {
@@ -137,15 +144,41 @@ export function streamChat(
         system: config.systemPrompt,
         temperature: config.temperature,
         abortSignal: controller.signal,
+        ...(hasTools ? { tools: mcpTools, stopWhen: stepCountIs(10) } : {}),
         ...(Object.keys(providerOptions).length > 0 ? { providerOptions } : {}),
       });
 
       for await (const part of result.fullStream) {
         if (controller.signal.aborted) break;
-        if (part.type === 'text-delta') {
-          onChunk(part.text);
-        } else if (part.type === 'reasoning-delta' && onReasoning) {
-          onReasoning((part as { type: string; text: string }).text);
+        switch (part.type) {
+          case 'text-delta':
+            onChunk(part.text);
+            break;
+          case 'reasoning-delta':
+            if (onReasoning) {
+              onReasoning((part as { type: string; text: string }).text);
+            }
+            break;
+          case 'tool-call':
+            if (onToolCall) {
+              const tc = part as { toolName: string; input: unknown };
+              onToolCall(
+                tc.toolName,
+                JSON.stringify(tc.input, null, 2),
+              );
+            }
+            break;
+          case 'tool-result':
+            if (onToolResult) {
+              const tr = part as { toolName: string; output: unknown };
+              onToolResult(
+                tr.toolName,
+                typeof tr.output === 'string'
+                  ? tr.output
+                  : JSON.stringify(tr.output),
+              );
+            }
+            break;
         }
       }
 

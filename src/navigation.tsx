@@ -122,10 +122,12 @@ function DrawerNavigator() {
 function AppContent() {
   const { colors, dark } = useTheme();
   const loadServers = useAppStore(s => s.loadServers);
+  const loadMCPServers = useAppStore(s => s.loadMCPServers);
 
   useEffect(() => {
     loadServers();
-  }, [loadServers]);
+    loadMCPServers();
+  }, [loadServers, loadMCPServers]);
 
   const navTheme = dark
     ? { ...DarkTheme, colors: { ...DarkTheme.colors, background: colors.background, card: colors.surface, primary: colors.primary, text: colors.text, border: colors.separator } }

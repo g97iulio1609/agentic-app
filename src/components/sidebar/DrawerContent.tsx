@@ -22,6 +22,7 @@ import { ACPConnectionState, SessionSummary, ServerType } from '../../acp/models
 import { useTheme, FontSize, Spacing, Radius } from '../../utils/theme';
 import { APP_DISPLAY_NAME } from '../../constants/app';
 import { getProviderInfo } from '../../ai/providers';
+import { MCPConnectionState } from '../../mcp/types';
 
 export function DrawerContent(props: DrawerContentComponentProps) {
   const { colors } = useTheme();
@@ -45,6 +46,7 @@ export function DrawerContent(props: DrawerContentComponentProps) {
     selectSession,
     deleteSession,
     loadSessions,
+    mcpStatuses,
   } = useAppStore();
 
   const selectedServer = servers.find(s => s.id === selectedServerId);
@@ -224,6 +226,18 @@ export function DrawerContent(props: DrawerContentComponentProps) {
                 {agentInfo.name}
               </Text>
             )}
+
+            {/* MCP tools indicator */}
+            {(() => {
+              const connectedMCP = mcpStatuses.filter(s => s.state === MCPConnectionState.Connected);
+              const totalTools = connectedMCP.reduce((sum, s) => sum + s.toolCount, 0);
+              if (totalTools === 0) return null;
+              return (
+                <Text style={[styles.mcpIndicator, { color: colors.primary }]}>
+                  🔌 {totalTools} MCP tool{totalTools !== 1 ? 's' : ''} from {connectedMCP.length} server{connectedMCP.length !== 1 ? 's' : ''}
+                </Text>
+              );
+            })()}
           </>
         )}
 
@@ -381,6 +395,11 @@ const styles = StyleSheet.create({
   agentName: {
     fontSize: FontSize.caption,
     paddingHorizontal: Spacing.md,
+  },
+  mcpIndicator: {
+    fontSize: FontSize.caption,
+    paddingHorizontal: Spacing.md,
+    marginTop: 2,
   },
   errorText: {
     fontSize: FontSize.caption,

@@ -27,6 +27,8 @@ import { SessionStorage } from '../storage/SessionStorage';
 import { streamChat } from '../ai/AIService';
 import { getApiKey } from '../storage/SecureStorage';
 import { getProviderInfo } from '../ai/providers';
+import { MCPManager } from '../mcp/MCPManager';
+import type { MCPServerConfig, MCPServerStatus } from '../mcp/types';
 
 // ─── Store State ───
 
@@ -49,6 +51,10 @@ interface AppState {
   stopReason: string | null;
   isStreaming: boolean;
   promptText: string;
+
+  // MCP Servers
+  mcpServers: MCPServerConfig[];
+  mcpStatuses: MCPServerStatus[];
 
   // Settings
   devModeEnabled: boolean;
@@ -82,6 +88,14 @@ interface AppActions {
   cancelPrompt: () => Promise<void>;
   setPromptText: (text: string) => void;
 
+  // MCP Servers
+  loadMCPServers: () => Promise<void>;
+  addMCPServer: (config: Omit<MCPServerConfig, 'id'>) => Promise<string>;
+  removeMCPServer: (id: string) => Promise<void>;
+  connectMCPServer: (id: string) => Promise<void>;
+  disconnectMCPServer: (id: string) => Promise<void>;
+  refreshMCPStatuses: () => void;
+
   // Settings
   toggleDevMode: () => void;
   appendLog: (log: string) => void;
@@ -112,6 +126,8 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
   stopReason: null,
   isStreaming: false,
   promptText: '',
+  mcpServers: [],
+  mcpStatuses: [],
   devModeEnabled: false,
   developerLogs: [],
 
@@ -595,6 +611,36 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
               ),
             }));
           },
+          // onToolCall
+          (toolName, args) => {
+            const segment: import('../acp/models/types').MessageSegment = {
+              type: 'toolCall',
+              toolName,
+              input: args,
+              isComplete: false,
+            };
+            set(s => ({
+              chatMessages: s.chatMessages.map(m =>
+                m.id === assistantId
+                  ? { ...m, segments: [...(m.segments ?? []), segment] }
+                  : m
+              ),
+            }));
+          },
+          // onToolResult
+          (toolName, result) => {
+            set(s => ({
+              chatMessages: s.chatMessages.map(m => {
+                if (m.id !== assistantId) return m;
+                const segments = (m.segments ?? []).map(seg =>
+                  seg.type === 'toolCall' && seg.toolName === toolName && !seg.isComplete
+                    ? { ...seg, result, isComplete: true }
+                    : seg
+                );
+                return { ...m, segments };
+              }),
+            }));
+          },
         );
         return;
       } catch (error) {
@@ -678,6 +724,72 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
 
   setPromptText: (text) => {
     set({ promptText: text });
+  },
+
+  // --- MCP Servers ---
+
+  loadMCPServers: async () => {
+    const servers = await SessionStorage.fetchMCPServers();
+    set({ mcpServers: servers });
+
+    // Subscribe to MCP manager state changes
+    MCPManager.subscribe(() => {
+      get().refreshMCPStatuses();
+    });
+
+    // Auto-connect enabled servers
+    for (const server of servers) {
+      if (server.autoConnect && server.enabled) {
+        MCPManager.addServer(server, true).catch((err) => {
+          get().appendLog(`✗ MCP auto-connect failed: ${server.name} — ${err.message}`);
+        });
+      } else {
+        MCPManager.addServer(server, false);
+      }
+    }
+    get().refreshMCPStatuses();
+  },
+
+  addMCPServer: async (serverData) => {
+    const config: MCPServerConfig = {
+      ...serverData,
+      id: uuidv4(),
+    };
+    await SessionStorage.saveMCPServer(config);
+    set(s => ({ mcpServers: [...s.mcpServers, config] }));
+
+    await MCPManager.addServer(config, config.autoConnect && config.enabled);
+    get().refreshMCPStatuses();
+    get().appendLog(`✓ MCP server added: ${config.name}`);
+    return config.id;
+  },
+
+  removeMCPServer: async (id) => {
+    await MCPManager.removeServer(id);
+    await SessionStorage.deleteMCPServer(id);
+    set(s => ({
+      mcpServers: s.mcpServers.filter(m => m.id !== id),
+    }));
+    get().refreshMCPStatuses();
+  },
+
+  connectMCPServer: async (id) => {
+    try {
+      await MCPManager.connectServer(id);
+      get().appendLog(`✓ MCP connected: ${get().mcpServers.find(s => s.id === id)?.name}`);
+    } catch (err) {
+      get().appendLog(`✗ MCP connect failed: ${(err as Error).message}`);
+    }
+    get().refreshMCPStatuses();
+  },
+
+  disconnectMCPServer: async (id) => {
+    await MCPManager.disconnectServer(id);
+    get().refreshMCPStatuses();
+  },
+
+  refreshMCPStatuses: () => {
+    set({ mcpStatuses: MCPManager.getServerStatuses() });
   },
 
   // --- Settings ---

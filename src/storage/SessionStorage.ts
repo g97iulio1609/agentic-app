@@ -5,8 +5,10 @@
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { ACPServerConfiguration, SessionSummary, ChatMessage, ServerType } from '../acp/models/types';
+import type { MCPServerConfig } from '../mcp/types';
 
 const SERVERS_KEY = '@agentic/servers';
+const MCP_SERVERS_KEY = '@agentic/mcp-servers';
 const sessionsKey = (serverId: string) => `@agentic/sessions/${serverId}`;
 const messagesKey = (serverId: string, sessionId: string) =>
   `@agentic/messages/${serverId}/${sessionId}`;
@@ -108,5 +110,34 @@ export const SessionStorage = {
 
   async deleteMessages(serverId: string, sessionId: string): Promise<void> {
     await AsyncStorage.removeItem(messagesKey(serverId, sessionId));
+  },
+
+  // --- MCP Server Operations ---
+
+  async fetchMCPServers(): Promise<MCPServerConfig[]> {
+    try {
+      const raw = await AsyncStorage.getItem(MCP_SERVERS_KEY);
+      if (!raw) return [];
+      return JSON.parse(raw) as MCPServerConfig[];
+    } catch {
+      return [];
+    }
+  },
+
+  async saveMCPServer(server: MCPServerConfig): Promise<void> {
+    const servers = await this.fetchMCPServers();
+    const idx = servers.findIndex(s => s.id === server.id);
+    if (idx !== -1) {
+      servers[idx] = server;
+    } else {
+      servers.push(server);
+    }
+    await AsyncStorage.setItem(MCP_SERVERS_KEY, JSON.stringify(servers));
+  },
+
+  async deleteMCPServer(id: string): Promise<void> {
+    const servers = await this.fetchMCPServers();
+    const filtered = servers.filter(s => s.id !== id);
+    await AsyncStorage.setItem(MCP_SERVERS_KEY, JSON.stringify(filtered));
   },
 };
