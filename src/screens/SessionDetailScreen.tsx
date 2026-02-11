@@ -18,8 +18,9 @@ import * as Haptics from 'expo-haptics';
 import { useAppStore } from '../stores/appStore';
 import { ChatBubble } from '../components/ChatBubble';
 import { MessageComposer } from '../components/MessageComposer';
+import { ModelPickerBar } from '../components/ModelPickerBar';
 import { TypingIndicator } from '../components/TypingIndicator';
-import { ChatMessage, ACPConnectionState, Attachment } from '../acp/models/types';
+import { ChatMessage, ACPConnectionState, Attachment, ServerType } from '../acp/models/types';
 import { useTheme, FontSize, Spacing } from '../utils/theme';
 
 export function SessionDetailScreen() {
@@ -32,14 +33,17 @@ export function SessionDetailScreen() {
     isInitialized,
     stopReason,
     selectedSessionId,
+    selectedServerId,
+    servers,
     sendPrompt,
     cancelPrompt,
     setPromptText,
   } = useAppStore();
 
   const flatListRef = useRef<FlatList<ChatMessage>>(null);
-  const isConnected =
-    connectionState === ACPConnectionState.Connected && isInitialized;
+  const selectedServer = servers.find(s => s.id === selectedServerId);
+  const isAIProvider = selectedServer?.serverType === ServerType.AIProvider;
+  const isConnected = isAIProvider || (connectionState === ACPConnectionState.Connected && isInitialized);
 
   // Smart auto-scroll: only scroll when user is near the bottom
   const isNearBottom = useRef(true);
@@ -163,6 +167,11 @@ export function SessionDetailScreen() {
               : `Stopped: ${stopReason}`}
           </Text>
         </View>
+      )}
+
+      {/* Model picker for AI providers */}
+      {isAIProvider && selectedServer && (
+        <ModelPickerBar server={selectedServer} />
       )}
 
       <MessageComposer
