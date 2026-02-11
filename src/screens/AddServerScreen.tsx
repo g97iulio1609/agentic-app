@@ -74,6 +74,9 @@ export function AddServerScreen() {
   const [showBaseUrl, setShowBaseUrl] = useState(
     !!editingAI?.baseUrl || false,
   );
+  const [temperature, setTemperature] = useState<number | undefined>(
+    editingAI?.temperature,
+  );
 
   const isEditing = !!editingServer;
 
@@ -131,7 +134,7 @@ export function AddServerScreen() {
           modelId: selectedModel,
           baseUrl: baseUrl.trim() || undefined,
           systemPrompt: systemPrompt.trim() || undefined,
-          temperature: undefined,
+          temperature,
         } as AIProviderConfig,
       };
 
@@ -201,6 +204,7 @@ export function AddServerScreen() {
     apiKey,
     baseUrl,
     systemPrompt,
+    temperature,
     autoName,
     isEditing,
     editingServer,
@@ -380,6 +384,47 @@ export function AddServerScreen() {
                 numberOfLines={4}
                 textAlignVertical="top"
               />
+            </View>
+
+            {/* Temperature */}
+            <View style={[styles.card, { backgroundColor: colors.cardBackground }]}>
+              <Text style={[styles.cardLabel, { color: colors.textTertiary }]}>
+                Temperature: {temperature !== undefined ? temperature.toFixed(1) : 'Default'}
+              </Text>
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.chipContainer}
+              >
+                {[undefined, 0, 0.3, 0.5, 0.7, 1.0, 1.5, 2.0].map((t, idx) => {
+                  const isSelected = temperature === t;
+                  const label = t === undefined ? 'Auto' : t.toFixed(1);
+                  return (
+                    <TouchableOpacity
+                      key={idx}
+                      style={[
+                        styles.tempChip,
+                        { borderColor: colors.separator },
+                        isSelected && { backgroundColor: colors.primary, borderColor: colors.primary },
+                      ]}
+                      onPress={() => {
+                        Haptics.selectionAsync();
+                        setTemperature(t);
+                      }}
+                    >
+                      <Text
+                        style={[
+                          styles.tempChipLabel,
+                          { color: colors.text },
+                          isSelected && { color: '#FFFFFF' },
+                        ]}
+                      >
+                        {label}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </ScrollView>
             </View>
 
             {/* Base URL — shown for Custom or on demand */}
@@ -683,6 +728,17 @@ const styles = StyleSheet.create({
   chipLabel: {
     fontSize: FontSize.footnote,
     fontWeight: '500',
+  },
+  tempChip: {
+    paddingHorizontal: Spacing.md,
+    paddingVertical: 8,
+    borderRadius: Radius.md,
+    borderWidth: 1,
+    marginRight: Spacing.sm,
+  },
+  tempChipLabel: {
+    fontSize: FontSize.footnote,
+    fontWeight: '600',
   },
   secureNote: {
     fontSize: FontSize.caption,

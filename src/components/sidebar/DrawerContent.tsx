@@ -207,6 +207,18 @@ export function DrawerContent(props: DrawerContentComponentProps) {
               </View>
             )}
 
+            {selectedServer && selectedServer.serverType === ServerType.AIProvider && (
+              <View style={styles.connectRow}>
+                <Text style={[styles.readyLabel, { color: colors.primary }]}>✓ Ready</Text>
+                <TouchableOpacity
+                  onPress={() => rootNav.navigate('AddServer')}
+                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                >
+                  <Text style={[styles.addIcon, { color: colors.sidebarTextSecondary }]}>+</Text>
+                </TouchableOpacity>
+              </View>
+            )}
+
             {agentInfo && (
               <Text style={[styles.agentName, { color: colors.sidebarTextSecondary }]} numberOfLines={1}>
                 {agentInfo.name}
@@ -356,6 +368,11 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: FontSize.caption,
     fontWeight: '600',
+  },
+  readyLabel: {
+    fontSize: FontSize.caption,
+    fontWeight: '600',
+    flex: 1,
   },
   addIcon: {
     fontSize: 20,

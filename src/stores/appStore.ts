@@ -167,6 +167,8 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
     // Disconnect from current
     _service?.disconnect();
     _service = null;
+    _aiAbortController?.abort();
+    _aiAbortController = null;
     set({
       selectedServerId: id,
       connectionState: ACPConnectionState.Disconnected,
@@ -181,6 +183,11 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
       isStreaming: false,
     });
     if (id) {
+      // Auto-connect for AI Provider servers
+      const server = state.servers.find(s => s.id === id);
+      if (server?.serverType === ServerType.AIProvider) {
+        get().connect();
+      }
       get().loadSessions();
     }
   },
