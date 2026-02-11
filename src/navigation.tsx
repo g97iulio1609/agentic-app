@@ -1,12 +1,9 @@
 /**
- * Navigation — Drawer + Stack layout.
- * Drawer sidebar holds server selector & session list.
- * Main area holds the chat view (SessionDetailScreen).
- * AddServer and Settings are presented as modals from a root stack.
+ * Navigation — Drawer + Stack layout, ChatGPT-style header.
  */
 
 import React, { useEffect } from 'react';
-import { TouchableOpacity, Text, StyleSheet, useWindowDimensions } from 'react-native';
+import { TouchableOpacity, Text, StyleSheet, useWindowDimensions, View } from 'react-native';
 import { NavigationContainer, DefaultTheme, DarkTheme, DrawerActions } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createDrawerNavigator } from '@react-navigation/drawer';
@@ -16,8 +13,9 @@ import { AddServerScreen } from './screens/AddServerScreen';
 import { SettingsScreen } from './screens/SettingsScreen';
 import { DrawerContent } from './components/sidebar/DrawerContent';
 import { ACPServerConfiguration } from './acp/models/types';
-import { useTheme, Spacing } from './utils/theme';
+import { useTheme, Spacing, FontSize } from './utils/theme';
 import { useAppStore } from './stores/appStore';
+import { ConnectionBadge } from './components/ConnectionBadge';
 
 export type RootStackParamList = {
   Main: undefined;
@@ -34,9 +32,24 @@ export type DrawerParamList = {
 const RootStack = createNativeStackNavigator<RootStackParamList>();
 const Drawer = createDrawerNavigator<DrawerParamList>();
 
+function HeaderTitle() {
+  const { colors } = useTheme();
+  const { agentInfo, connectionState, isInitialized } = useAppStore();
+
+  return (
+    <View style={styles.headerTitleContainer}>
+      <Text style={[styles.headerTitle, { color: colors.text }]}>
+        {agentInfo?.name || 'Agentic'}
+      </Text>
+      <ConnectionBadge state={connectionState} isInitialized={isInitialized} />
+    </View>
+  );
+}
+
 function DrawerNavigator() {
   const { colors } = useTheme();
   const { width } = useWindowDimensions();
+  const { createSession } = useAppStore();
 
   return (
     <Drawer.Navigator
@@ -47,11 +60,11 @@ function DrawerNavigator() {
           width: Math.min(300, width * 0.78),
           backgroundColor: colors.sidebarBackground,
         },
-        overlayColor: 'rgba(0,0,0,0.35)',
+        overlayColor: 'rgba(0,0,0,0.5)',
         headerStyle: { backgroundColor: colors.surface },
         headerTintColor: colors.text,
         headerShadowVisible: false,
-        headerTitleStyle: { fontWeight: '600', fontSize: 17 },
+        headerTitleStyle: { fontWeight: '500', fontSize: FontSize.subheadline },
         sceneStyle: { backgroundColor: colors.background },
       }}
     >
@@ -59,7 +72,7 @@ function DrawerNavigator() {
         name="Chat"
         component={SessionDetailScreen}
         options={({ navigation }) => ({
-          title: 'Chat',
+          headerTitle: () => <HeaderTitle />,
           headerLeft: () => (
             <TouchableOpacity
               onPress={() => navigation.dispatch(DrawerActions.toggleDrawer())}
@@ -67,6 +80,15 @@ function DrawerNavigator() {
               hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
             >
               <Text style={[styles.hamburgerText, { color: colors.text }]}>☰</Text>
+            </TouchableOpacity>
+          ),
+          headerRight: () => (
+            <TouchableOpacity
+              onPress={() => createSession()}
+              style={styles.newChatHeaderButton}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            >
+              <Text style={[styles.newChatHeaderIcon, { color: colors.text }]}>✎</Text>
             </TouchableOpacity>
           ),
         })}
@@ -103,7 +125,7 @@ function AppContent() {
             title: 'Add Server',
             presentation: 'modal',
             headerStyle: { backgroundColor: colors.surface },
-            headerTintColor: colors.primary,
+            headerTintColor: colors.text,
             headerShadowVisible: false,
           }}
         />
@@ -115,7 +137,7 @@ function AppContent() {
             title: 'Settings',
             presentation: 'modal',
             headerStyle: { backgroundColor: colors.surface },
-            headerTintColor: colors.primary,
+            headerTintColor: colors.text,
             headerShadowVisible: false,
           }}
         />
@@ -137,6 +159,21 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.md,
   },
   hamburgerText: {
-    fontSize: 22,
+    fontSize: 20,
+  },
+  headerTitleContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.xs,
+  },
+  headerTitle: {
+    fontSize: FontSize.subheadline,
+    fontWeight: '500',
+  },
+  newChatHeaderButton: {
+    paddingHorizontal: Spacing.md,
+  },
+  newChatHeaderIcon: {
+    fontSize: 20,
   },
 });

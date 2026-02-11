@@ -1,5 +1,5 @@
 /**
- * Add/Edit Server screen — themed.
+ * Add/Edit Server screen — iOS Settings-style grouped fields.
  */
 
 import React, { useState, useCallback } from 'react';
@@ -100,18 +100,9 @@ export function AddServerScreen() {
     navigation,
   ]);
 
-  const inputStyle = [
-    styles.input,
-    {
-      backgroundColor: colors.cardBackground,
-      color: colors.text,
-      borderColor: colors.separator,
-    },
-  ];
-
   return (
     <KeyboardAvoidingView
-      style={[styles.container, { backgroundColor: colors.background }]}
+      style={[styles.container, { backgroundColor: colors.systemGray6 }]}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
       <ScrollView
@@ -119,9 +110,9 @@ export function AddServerScreen() {
         contentContainerStyle={[styles.scrollContent, { paddingBottom: Math.max(insets.bottom, Spacing.lg) + Spacing.lg }]}
         keyboardShouldPersistTaps="handled"
       >
-        {/* Server Type Picker */}
-        <View style={styles.fieldGroup}>
-          <Text style={[styles.label, { color: colors.textTertiary }]}>Protocol</Text>
+        {/* Protocol section */}
+        <View style={[styles.card, { backgroundColor: colors.cardBackground }]}>
+          <Text style={[styles.cardLabel, { color: colors.textTertiary }]}>Protocol</Text>
           <View style={[styles.segmentedControl, { backgroundColor: colors.systemGray5 }]}>
             <TouchableOpacity
               style={[
@@ -133,8 +124,8 @@ export function AddServerScreen() {
               <Text
                 style={[
                   styles.segmentText,
-                  { color: colors.textSecondary },
-                  serverType === ServerType.ACP && { color: colors.primary, fontWeight: '600' },
+                  { color: colors.textTertiary },
+                  serverType === ServerType.ACP && { color: colors.text, fontWeight: '600' },
                 ]}
               >
                 ACP
@@ -150,8 +141,8 @@ export function AddServerScreen() {
               <Text
                 style={[
                   styles.segmentText,
-                  { color: colors.textSecondary },
-                  serverType === ServerType.Codex && { color: colors.primary, fontWeight: '600' },
+                  { color: colors.textTertiary },
+                  serverType === ServerType.Codex && { color: colors.text, fontWeight: '600' },
                 ]}
               >
                 Codex
@@ -160,106 +151,111 @@ export function AddServerScreen() {
           </View>
         </View>
 
-        {/* Name */}
-        <View style={styles.fieldGroup}>
-          <Text style={[styles.label, { color: colors.textTertiary }]}>Name</Text>
-          <TextInput
-            style={inputStyle}
-            value={name}
-            onChangeText={setName}
-            placeholder="My Agent"
-            placeholderTextColor={colors.systemGray2}
-            autoCapitalize="none"
-          />
-        </View>
-
-        {/* Scheme */}
-        <View style={styles.fieldGroup}>
-          <Text style={[styles.label, { color: colors.textTertiary }]}>Scheme</Text>
-          <View style={[styles.segmentedControl, { backgroundColor: colors.systemGray5 }]}>
-            {['ws', 'wss'].map(s => (
-              <TouchableOpacity
-                key={s}
-                style={[
-                  styles.segment,
-                  scheme === s && [styles.segmentSelected, { backgroundColor: colors.cardBackground }],
-                ]}
-                onPress={() => setScheme(s)}
-              >
-                <Text
+        {/* Connection section */}
+        <View style={[styles.card, { backgroundColor: colors.cardBackground }]}>
+          <View style={styles.fieldRow}>
+            <Text style={[styles.fieldLabel, { color: colors.text }]}>Name</Text>
+            <TextInput
+              style={[styles.fieldInput, { color: colors.text }]}
+              value={name}
+              onChangeText={setName}
+              placeholder="My Agent"
+              placeholderTextColor={colors.systemGray2}
+              autoCapitalize="none"
+            />
+          </View>
+          <View style={[styles.fieldSeparator, { backgroundColor: colors.separator }]} />
+          <View style={styles.fieldRow}>
+            <Text style={[styles.fieldLabel, { color: colors.text }]}>Scheme</Text>
+            <View style={[styles.segmentedControlSmall, { backgroundColor: colors.systemGray5 }]}>
+              {(['ws', 'wss'] as const).map(s => (
+                <TouchableOpacity
+                  key={s}
                   style={[
-                    styles.segmentText,
-                    { color: colors.textSecondary },
-                    scheme === s && { color: colors.primary, fontWeight: '600' },
+                    styles.segmentSmall,
+                    scheme === s && [styles.segmentSelected, { backgroundColor: colors.cardBackground }],
                   ]}
+                  onPress={() => setScheme(s)}
                 >
-                  {s}
-                </Text>
-              </TouchableOpacity>
-            ))}
+                  <Text
+                    style={[
+                      styles.segmentTextSmall,
+                      { color: colors.textTertiary },
+                      scheme === s && { color: colors.text, fontWeight: '600' },
+                    ]}
+                  >
+                    {s}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+          <View style={[styles.fieldSeparator, { backgroundColor: colors.separator }]} />
+          <View style={styles.fieldRow}>
+            <Text style={[styles.fieldLabel, { color: colors.text }]}>Host</Text>
+            <TextInput
+              style={[styles.fieldInput, { color: colors.text }]}
+              value={host}
+              onChangeText={setHost}
+              placeholder="localhost:8765"
+              placeholderTextColor={colors.systemGray2}
+              autoCapitalize="none"
+              autoCorrect={false}
+              keyboardType="url"
+            />
           </View>
         </View>
 
-        {/* Host */}
-        <View style={styles.fieldGroup}>
-          <Text style={[styles.label, { color: colors.textTertiary }]}>Host</Text>
-          <TextInput
-            style={inputStyle}
-            value={host}
-            onChangeText={setHost}
-            placeholder="localhost:8765"
-            placeholderTextColor={colors.systemGray2}
-            autoCapitalize="none"
-            autoCorrect={false}
-            keyboardType="url"
-          />
-        </View>
-
-        {/* Token */}
-        <View style={styles.fieldGroup}>
-          <Text style={[styles.label, { color: colors.textTertiary }]}>Bearer Token (optional)</Text>
-          <TextInput
-            style={inputStyle}
-            value={token}
-            onChangeText={setToken}
-            placeholder="Enter token"
-            placeholderTextColor={colors.systemGray2}
-            autoCapitalize="none"
-            autoCorrect={false}
-            secureTextEntry
-          />
-        </View>
-
-        {/* Working Directory */}
-        <View style={styles.fieldGroup}>
-          <Text style={[styles.label, { color: colors.textTertiary }]}>Working Directory (optional)</Text>
-          <TextInput
-            style={inputStyle}
-            value={workingDirectory}
-            onChangeText={setWorkingDirectory}
-            placeholder="/path/to/workspace"
-            placeholderTextColor={colors.systemGray2}
-            autoCapitalize="none"
-            autoCorrect={false}
-          />
+        {/* Optional section */}
+        <View style={[styles.card, { backgroundColor: colors.cardBackground }]}>
+          <View style={styles.fieldRow}>
+            <Text style={[styles.fieldLabel, { color: colors.text }]}>Token</Text>
+            <TextInput
+              style={[styles.fieldInput, { color: colors.text }]}
+              value={token}
+              onChangeText={setToken}
+              placeholder="Bearer token"
+              placeholderTextColor={colors.systemGray2}
+              autoCapitalize="none"
+              autoCorrect={false}
+              secureTextEntry
+            />
+          </View>
+          <View style={[styles.fieldSeparator, { backgroundColor: colors.separator }]} />
+          <View style={styles.fieldRow}>
+            <Text style={[styles.fieldLabel, { color: colors.text }]}>Directory</Text>
+            <TextInput
+              style={[styles.fieldInput, { color: colors.text }]}
+              value={workingDirectory}
+              onChangeText={setWorkingDirectory}
+              placeholder="/path/to/workspace"
+              placeholderTextColor={colors.systemGray2}
+              autoCapitalize="none"
+              autoCorrect={false}
+            />
+          </View>
         </View>
 
         {/* Advanced: Cloudflare Access */}
         <TouchableOpacity
-          style={styles.advancedToggle}
+          style={[styles.card, { backgroundColor: colors.cardBackground }]}
           onPress={() => setShowAdvanced(!showAdvanced)}
+          activeOpacity={0.7}
         >
-          <Text style={[styles.advancedToggleText, { color: colors.textTertiary }]}>
-            {showAdvanced ? '▼' : '▶'} Cloudflare Access
-          </Text>
+          <View style={styles.fieldRow}>
+            <Text style={[styles.fieldLabel, { color: colors.text }]}>Cloudflare Access</Text>
+            <Text style={[styles.chevronText, { color: colors.textTertiary }]}>
+              {showAdvanced ? '▾' : '▸'}
+            </Text>
+          </View>
         </TouchableOpacity>
 
         {showAdvanced && (
-          <>
-            <View style={styles.fieldGroup}>
-              <Text style={[styles.label, { color: colors.textTertiary }]}>CF-Access-Client-Id</Text>
+          <View style={[styles.card, { backgroundColor: colors.cardBackground }]}>
+            <View style={styles.fieldRow}>
+              <Text style={[styles.fieldLabel, { color: colors.text }]}>Client ID</Text>
               <TextInput
-                style={inputStyle}
+                style={[styles.fieldInput, { color: colors.text }]}
                 value={cfAccessClientId}
                 onChangeText={setCfAccessClientId}
                 placeholder="Client ID"
@@ -268,10 +264,11 @@ export function AddServerScreen() {
                 autoCorrect={false}
               />
             </View>
-            <View style={styles.fieldGroup}>
-              <Text style={[styles.label, { color: colors.textTertiary }]}>CF-Access-Client-Secret</Text>
+            <View style={[styles.fieldSeparator, { backgroundColor: colors.separator }]} />
+            <View style={styles.fieldRow}>
+              <Text style={[styles.fieldLabel, { color: colors.text }]}>Secret</Text>
               <TextInput
-                style={inputStyle}
+                style={[styles.fieldInput, { color: colors.text }]}
                 value={cfAccessClientSecret}
                 onChangeText={setCfAccessClientSecret}
                 placeholder="Client Secret"
@@ -281,7 +278,7 @@ export function AddServerScreen() {
                 secureTextEntry
               />
             </View>
-          </>
+          </View>
         )}
 
         {/* Save Button */}
@@ -309,26 +306,46 @@ const styles = StyleSheet.create({
     padding: Spacing.lg,
     gap: Spacing.lg,
   },
-  fieldGroup: {
-    gap: Spacing.xs + 2,
+  card: {
+    borderRadius: Radius.md,
+    paddingHorizontal: Spacing.lg,
+    overflow: 'hidden',
   },
-  label: {
-    fontSize: FontSize.footnote,
+  cardLabel: {
+    fontSize: FontSize.caption,
     fontWeight: '600',
     textTransform: 'uppercase',
     letterSpacing: 0.5,
+    paddingTop: Spacing.md,
+    paddingBottom: Spacing.sm,
   },
-  input: {
-    borderRadius: Radius.md,
-    paddingHorizontal: Spacing.md,
+  fieldRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     paddingVertical: Spacing.md,
+    minHeight: 44,
+  },
+  fieldLabel: {
     fontSize: FontSize.body,
-    borderWidth: StyleSheet.hairlineWidth,
+    fontWeight: '400',
+    width: 90,
+  },
+  fieldInput: {
+    flex: 1,
+    fontSize: FontSize.body,
+    textAlign: 'right',
+    paddingVertical: 0,
+  },
+  fieldSeparator: {
+    height: StyleSheet.hairlineWidth,
+    marginLeft: 0,
   },
   segmentedControl: {
     flexDirection: 'row',
     borderRadius: Radius.sm,
     padding: 2,
+    marginBottom: Spacing.md,
   },
   segment: {
     flex: 1,
@@ -347,12 +364,22 @@ const styles = StyleSheet.create({
     fontSize: FontSize.footnote,
     fontWeight: '500',
   },
-  advancedToggle: {
-    paddingVertical: Spacing.sm,
+  segmentedControlSmall: {
+    flexDirection: 'row',
+    borderRadius: 6,
+    padding: 2,
   },
-  advancedToggleText: {
+  segmentSmall: {
+    paddingHorizontal: Spacing.md,
+    paddingVertical: 4,
+    borderRadius: 5,
+  },
+  segmentTextSmall: {
     fontSize: FontSize.footnote,
     fontWeight: '500',
+  },
+  chevronText: {
+    fontSize: 14,
   },
   saveButton: {
     borderRadius: Radius.md,

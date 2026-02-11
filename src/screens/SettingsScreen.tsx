@@ -1,5 +1,5 @@
 /**
- * Settings screen — themed.
+ * Settings screen — iOS Settings-style grouped cards.
  */
 
 import React from 'react';
@@ -21,14 +21,14 @@ export function SettingsScreen() {
     useAppStore();
 
   return (
-    <ScrollView style={[styles.container, { backgroundColor: colors.background }]}>
+    <ScrollView style={[styles.container, { backgroundColor: colors.systemGray6 }]}>
       {/* Dev Mode */}
       <View style={[styles.section, { backgroundColor: colors.cardBackground }]}>
         <View style={styles.settingRow}>
-          <View style={{ flex: 1 }}>
+          <View style={styles.settingContent}>
             <Text style={[styles.settingTitle, { color: colors.text }]}>Developer Mode</Text>
             <Text style={[styles.settingSubtitle, { color: colors.textTertiary }]}>
-              Show raw JSON-RPC messages in logs
+              Show raw JSON-RPC messages
             </Text>
           </View>
           <Switch
@@ -68,14 +68,14 @@ export function SettingsScreen() {
 
       {/* About */}
       <View style={[styles.section, { backgroundColor: colors.cardBackground }]}>
-        <Text style={[styles.sectionTitle, { color: colors.text }]}>About</Text>
         <View style={styles.aboutRow}>
-          <Text style={[styles.aboutLabel, { color: colors.textSecondary }]}>App</Text>
-          <Text style={[styles.aboutValue, { color: colors.text }]}>{APP_DISPLAY_NAME} v{APP_VERSION}</Text>
+          <Text style={[styles.aboutLabel, { color: colors.text }]}>App</Text>
+          <Text style={[styles.aboutValue, { color: colors.textTertiary }]}>{APP_DISPLAY_NAME} v{APP_VERSION}</Text>
         </View>
+        <View style={[styles.aboutSeparator, { backgroundColor: colors.separator }]} />
         <View style={styles.aboutRow}>
-          <Text style={[styles.aboutLabel, { color: colors.textSecondary }]}>Platform</Text>
-          <Text style={[styles.aboutValue, { color: colors.text }]}>React Native (Expo)</Text>
+          <Text style={[styles.aboutLabel, { color: colors.text }]}>Platform</Text>
+          <Text style={[styles.aboutValue, { color: colors.textTertiary }]}>React Native (Expo)</Text>
         </View>
       </View>
     </ScrollView>
@@ -106,6 +106,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+  },
+  settingContent: {
+    flex: 1,
   },
   settingTitle: {
     fontSize: FontSize.body,
@@ -138,12 +141,15 @@ const styles = StyleSheet.create({
   aboutRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
+    paddingVertical: Spacing.xs,
+  },
+  aboutSeparator: {
+    height: StyleSheet.hairlineWidth,
   },
   aboutLabel: {
     fontSize: FontSize.body,
   },
   aboutValue: {
     fontSize: FontSize.body,
-    fontWeight: '500',
   },
 });

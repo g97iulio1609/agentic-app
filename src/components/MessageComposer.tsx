@@ -1,5 +1,5 @@
 /**
- * Message composer — themed, with haptic feedback.
+ * Message composer — ChatGPT style: pill-shaped input with embedded send button.
  */
 
 import React, { useCallback } from 'react';
@@ -13,7 +13,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
-import { useTheme, FontSize, Spacing, Radius } from '../utils/theme';
+import { useTheme, FontSize, Spacing } from '../utils/theme';
 
 interface Props {
   value: string;
@@ -32,7 +32,7 @@ export function MessageComposer({
   onCancel,
   isStreaming,
   isDisabled,
-  placeholder = 'Message the agent…',
+  placeholder = 'Message',
 }: Props) {
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
@@ -50,8 +50,8 @@ export function MessageComposer({
   }, [onCancel]);
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.surface, borderTopColor: colors.separator, paddingBottom: Math.max(insets.bottom, Spacing.sm) }]}>
-      <View style={[styles.inputContainer, { backgroundColor: colors.inputBackground }]}>
+    <View style={[styles.container, { backgroundColor: colors.background, paddingBottom: Math.max(insets.bottom, Spacing.sm) }]}>
+      <View style={[styles.inputContainer, { backgroundColor: colors.inputBackground, borderColor: colors.inputBorder }]}>
         <TextInput
           style={[styles.textInput, { color: colors.text }]}
           value={value}
@@ -66,23 +66,23 @@ export function MessageComposer({
         />
         {isStreaming ? (
           <TouchableOpacity
-            style={[styles.cancelButton, { backgroundColor: colors.destructive }]}
+            style={[styles.cancelButton, { backgroundColor: colors.text }]}
             onPress={handleCancel}
             activeOpacity={0.7}
           >
-            <View style={styles.stopIcon} />
+            <View style={[styles.stopIcon, { backgroundColor: colors.background }]} />
           </TouchableOpacity>
         ) : (
           <TouchableOpacity
             style={[
               styles.sendButton,
-              { backgroundColor: canSend ? colors.primary : colors.systemGray4 },
+              { backgroundColor: canSend ? colors.sendButtonBg : colors.sendButtonDisabledBg },
             ]}
             onPress={handleSend}
             disabled={!canSend}
             activeOpacity={0.7}
           >
-            <Text style={styles.sendIcon}>↑</Text>
+            <Text style={[styles.sendIcon, { color: colors.sendButtonIcon }]}>↑</Text>
           </TouchableOpacity>
         )}
       </View>
@@ -94,18 +94,16 @@ const styles = StyleSheet.create({
   container: {
     paddingHorizontal: Spacing.md,
     paddingTop: Spacing.sm,
-    borderTopWidth: StyleSheet.hairlineWidth,
   },
   inputContainer: {
     flexDirection: 'row',
     alignItems: 'flex-end',
-    borderRadius: Radius.xl + 2,
+    borderRadius: 24,
     paddingLeft: Spacing.lg,
     paddingRight: Spacing.xs + 2,
     paddingVertical: Platform.OS === 'ios' ? Spacing.sm + 2 : Spacing.sm,
-    minHeight: 46,
+    minHeight: 48,
     borderWidth: 1,
-    borderColor: 'rgba(0,0,0,0.06)',
   },
   textInput: {
     flex: 1,
@@ -116,24 +114,23 @@ const styles = StyleSheet.create({
     lineHeight: 22,
   },
   sendButton: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
     justifyContent: 'center',
     alignItems: 'center',
     marginLeft: Spacing.sm,
     marginBottom: 1,
   },
   sendIcon: {
-    color: '#FFFFFF',
     fontSize: 18,
     fontWeight: 'bold',
     marginTop: -1,
   },
   cancelButton: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
     justifyContent: 'center',
     alignItems: 'center',
     marginLeft: Spacing.sm,
@@ -143,6 +140,5 @@ const styles = StyleSheet.create({
     width: 12,
     height: 12,
     borderRadius: 2,
-    backgroundColor: '#FFFFFF',
   },
 });

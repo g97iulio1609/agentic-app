@@ -1,5 +1,5 @@
 /**
- * Custom drawer sidebar content: server selector, session list, settings link.
+ * Sidebar — ChatGPT style: always dark, session list, subtle server integration.
  */
 
 import React, { useCallback } from 'react';
@@ -93,6 +93,9 @@ export function DrawerContent(props: DrawerContentComponentProps) {
     [deleteSession],
   );
 
+  // Group sessions by date
+  const groupedSessions = groupSessionsByDate(sessions);
+
   const renderSessionItem = useCallback(
     ({ item }: { item: SessionSummary }) => {
       const isActive = item.id === selectedSessionId;
@@ -100,26 +103,18 @@ export function DrawerContent(props: DrawerContentComponentProps) {
         <TouchableOpacity
           style={[
             styles.sessionItem,
-            { backgroundColor: isActive ? colors.sidebarItemActive : 'transparent' },
+            isActive && styles.sessionItemActive,
           ]}
           onPress={() => handleSessionPress(item)}
           onLongPress={() => handleDeleteSession(item.id)}
           activeOpacity={0.6}
         >
-          <Text style={[styles.sessionIcon]}>💬</Text>
-          <View style={styles.sessionTextContainer}>
-            <Text
-              style={[styles.sessionTitle, { color: colors.text }]}
-              numberOfLines={1}
-            >
-              {item.title || 'New Session'}
-            </Text>
-            {item.updatedAt && (
-              <Text style={[styles.sessionDate, { color: colors.textTertiary }]}>
-                {formatDate(item.updatedAt)}
-              </Text>
-            )}
-          </View>
+          <Text
+            style={[styles.sessionTitle, { color: colors.sidebarText }]}
+            numberOfLines={1}
+          >
+            {item.title || 'New chat'}
+          </Text>
         </TouchableOpacity>
       );
     },
@@ -128,154 +123,155 @@ export function DrawerContent(props: DrawerContentComponentProps) {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.sidebarBackground, paddingTop: insets.top }]}>
-      {/* Header */}
-      <View style={[styles.header, { borderBottomColor: colors.separator }]}>
-        <Text style={[styles.appName, { color: colors.text }]}>{APP_DISPLAY_NAME}</Text>
-        {selectedServer && (
-          <ConnectionBadge state={connectionState} isInitialized={isInitialized} />
-        )}
+      {/* New chat button */}
+      <View style={styles.header}>
+        <TouchableOpacity
+          style={styles.newChatButton}
+          onPress={handleNewSession}
+          disabled={!isInitialized}
+          activeOpacity={0.7}
+        >
+          <Text style={[styles.newChatIcon, { color: colors.sidebarText, opacity: isInitialized ? 1 : 0.4 }]}>✎</Text>
+          <Text style={[styles.newChatText, { color: colors.sidebarText, opacity: isInitialized ? 1 : 0.4 }]}>New chat</Text>
+        </TouchableOpacity>
       </View>
 
-      {/* Server selector */}
+      {/* Server selector — compact */}
       <View style={styles.serverSection}>
-        <View style={styles.sectionHeaderRow}>
-          <Text style={[styles.sectionLabel, { color: colors.textTertiary }]}>SERVER</Text>
-          <TouchableOpacity
-            onPress={() => {
-              rootNav.navigate('AddServer');
-            }}
-            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-          >
-            <Text style={[styles.addIcon, { color: colors.primary }]}>＋</Text>
-          </TouchableOpacity>
-        </View>
-
         {servers.length === 0 ? (
           <TouchableOpacity
-            style={[styles.emptyServerButton, { borderColor: colors.separator }]}
-            onPress={() => {
-              rootNav.navigate('AddServer');
-            }}
+            style={[styles.addServerButton, { borderColor: colors.sidebarSeparator }]}
+            onPress={() => rootNav.navigate('AddServer')}
           >
-            <Text style={[styles.emptyServerText, { color: colors.textTertiary }]}>
-              Add a server to get started
+            <Text style={[styles.addServerText, { color: colors.sidebarTextSecondary }]}>
+              + Add a server
             </Text>
           </TouchableOpacity>
         ) : (
-          servers.map(server => {
-            const isSelected = server.id === selectedServerId;
-            return (
-              <TouchableOpacity
-                key={server.id}
-                style={[
-                  styles.serverChip,
-                  {
-                    backgroundColor: isSelected ? colors.primaryMuted : colors.sidebarItem,
-                    borderColor: isSelected ? colors.primary : colors.separator,
-                  },
-                ]}
-                onPress={() => handleServerPress(server.id)}
-                activeOpacity={0.7}
-              >
-                <Text
+          <>
+            {servers.map(server => {
+              const isSelected = server.id === selectedServerId;
+              return (
+                <TouchableOpacity
+                  key={server.id}
                   style={[
-                    styles.serverName,
-                    { color: isSelected ? colors.primary : colors.text },
+                    styles.serverChip,
+                    isSelected && styles.serverChipSelected,
                   ]}
-                  numberOfLines={1}
+                  onPress={() => handleServerPress(server.id)}
+                  activeOpacity={0.7}
                 >
-                  {server.name || server.host}
-                </Text>
-              </TouchableOpacity>
-            );
-          })
-        )}
+                  <Text
+                    style={[
+                      styles.serverName,
+                      { color: isSelected ? colors.sidebarText : colors.sidebarTextSecondary },
+                    ]}
+                    numberOfLines={1}
+                  >
+                    {server.name || server.host}
+                  </Text>
+                  {isSelected && (
+                    <ConnectionBadge state={connectionState} isInitialized={isInitialized} />
+                  )}
+                </TouchableOpacity>
+              );
+            })}
 
-        {selectedServer && (
-          <View style={styles.connectRow}>
-            <TouchableOpacity
-              style={[
-                styles.connectButton,
-                {
-                  backgroundColor: isConnected ? colors.destructive : colors.primary,
-                },
-              ]}
-              onPress={handleConnect}
-            >
-              <Text style={styles.connectButtonText}>
-                {isConnected ? 'Disconnect' : 'Connect'}
-              </Text>
-            </TouchableOpacity>
+            {selectedServer && (
+              <View style={styles.connectRow}>
+                <TouchableOpacity
+                  style={[
+                    styles.connectButton,
+                    { backgroundColor: isConnected ? 'rgba(239,68,68,0.8)' : colors.primary },
+                  ]}
+                  onPress={handleConnect}
+                >
+                  <Text style={styles.connectButtonText}>
+                    {isConnected ? 'Disconnect' : 'Connect'}
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={() => rootNav.navigate('AddServer')}
+                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                >
+                  <Text style={[styles.addIcon, { color: colors.sidebarTextSecondary }]}>+</Text>
+                </TouchableOpacity>
+              </View>
+            )}
+
             {agentInfo && (
-              <Text style={[styles.agentName, { color: colors.textTertiary }]} numberOfLines={1}>
+              <Text style={[styles.agentName, { color: colors.sidebarTextSecondary }]} numberOfLines={1}>
                 {agentInfo.name}
               </Text>
             )}
-          </View>
+          </>
         )}
 
         {connectionError && (
-          <Text style={[styles.errorText, { color: colors.destructive }]} numberOfLines={2}>
+          <Text style={[styles.errorText, { color: '#F87171' }]} numberOfLines={2}>
             {connectionError}
           </Text>
         )}
       </View>
 
-      {/* Sessions */}
-      <View style={styles.sessionsSection}>
-        <View style={styles.sectionHeaderRow}>
-          <Text style={[styles.sectionLabel, { color: colors.textTertiary }]}>SESSIONS</Text>
-          {isInitialized && (
-            <TouchableOpacity onPress={handleNewSession} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-              <Text style={[styles.addIcon, { color: colors.primary }]}>＋</Text>
-            </TouchableOpacity>
-          )}
-        </View>
-        <FlatList
-          data={sessions}
-          keyExtractor={item => item.id}
-          renderItem={renderSessionItem}
-          contentContainerStyle={sessions.length === 0 ? styles.emptySessionsList : undefined}
-          ListEmptyComponent={
-            <Text style={[styles.emptySessionsText, { color: colors.textTertiary }]}>
-              {isInitialized ? 'No sessions yet' : 'Connect to see sessions'}
-            </Text>
-          }
-          refreshControl={
-            <RefreshControl refreshing={false} onRefresh={loadSessions} tintColor={colors.primary} />
-          }
-          showsVerticalScrollIndicator={false}
-        />
-      </View>
+      {/* Separator */}
+      <View style={[styles.divider, { backgroundColor: colors.sidebarSeparator }]} />
 
-      {/* Bottom actions */}
-      <View style={[styles.footer, { borderTopColor: colors.separator, paddingBottom: insets.bottom + 8 }]}>
+      {/* Sessions list */}
+      <FlatList
+        data={sessions}
+        keyExtractor={item => item.id}
+        renderItem={renderSessionItem}
+        contentContainerStyle={sessions.length === 0 ? styles.emptySessionsList : styles.sessionsList}
+        ListEmptyComponent={
+          <Text style={[styles.emptySessionsText, { color: colors.sidebarTextSecondary }]}>
+            {isInitialized ? 'No chats yet' : 'Connect to start'}
+          </Text>
+        }
+        refreshControl={
+          <RefreshControl refreshing={false} onRefresh={loadSessions} tintColor={colors.sidebarText} />
+        }
+        showsVerticalScrollIndicator={false}
+        style={styles.sessionsContainer}
+      />
+
+      {/* Footer — settings only */}
+      <View style={[styles.footer, { borderTopColor: colors.sidebarSeparator, paddingBottom: insets.bottom + 8 }]}>
         <TouchableOpacity
           style={styles.footerButton}
-          onPress={() => {
-            rootNav.navigate('Settings');
-          }}
+          onPress={() => rootNav.navigate('Settings')}
         >
-          <Text style={styles.footerIcon}>⚙️</Text>
-          <Text style={[styles.footerLabel, { color: colors.text }]}>Settings</Text>
+          <Text style={[styles.footerIcon, { color: colors.sidebarText }]}>⚙</Text>
         </TouchableOpacity>
       </View>
     </View>
   );
 }
 
-function formatDate(iso: string): string {
-  const d = new Date(iso);
-  const now = new Date();
-  const diffMs = now.getTime() - d.getTime();
-  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+function groupSessionsByDate(sessions: SessionSummary[]): { label: string; data: SessionSummary[] }[] {
+  if (sessions.length === 0) return [];
 
-  if (diffDays === 0) {
-    return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const yesterday = new Date(today.getTime() - 86400000);
+  const weekAgo = new Date(today.getTime() - 7 * 86400000);
+
+  const groups: Record<string, SessionSummary[]> = {};
+
+  for (const session of sessions) {
+    const d = session.updatedAt ? new Date(session.updatedAt) : new Date();
+    let label: string;
+    if (d >= today) label = 'Today';
+    else if (d >= yesterday) label = 'Yesterday';
+    else if (d >= weekAgo) label = 'Previous 7 days';
+    else label = 'Older';
+
+    if (!groups[label]) groups[label] = [];
+    groups[label].push(session);
   }
-  if (diffDays === 1) return 'Yesterday';
-  if (diffDays < 7) return d.toLocaleDateString([], { weekday: 'short' });
-  return d.toLocaleDateString([], { month: 'short', day: 'numeric' });
+
+  const order = ['Today', 'Yesterday', 'Previous 7 days', 'Older'];
+  return order.filter(l => groups[l]).map(l => ({ label: l, data: groups[l] }));
 }
 
 const styles = StyleSheet.create({
@@ -283,62 +279,60 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: Spacing.lg,
+    paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.md,
-    borderBottomWidth: StyleSheet.hairlineWidth,
   },
-  appName: {
-    fontSize: FontSize.title3,
-    fontWeight: '700',
-    letterSpacing: -0.3,
-  },
-  serverSection: {
-    paddingHorizontal: Spacing.lg,
-    paddingTop: Spacing.lg,
+  newChatButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm + 2,
+    borderRadius: Radius.sm,
     gap: Spacing.sm,
   },
-  sectionHeaderRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: Spacing.xs,
-  },
-  sectionLabel: {
-    fontSize: FontSize.caption,
-    fontWeight: '600',
-    letterSpacing: 0.8,
-  },
-  addIcon: {
+  newChatIcon: {
     fontSize: 18,
+  },
+  newChatText: {
+    fontSize: FontSize.subheadline,
     fontWeight: '500',
   },
-  emptyServerButton: {
+  serverSection: {
+    paddingHorizontal: Spacing.md,
+    gap: Spacing.xs,
+  },
+  addServerButton: {
     borderWidth: 1,
     borderStyle: 'dashed',
     borderRadius: Radius.sm,
     paddingVertical: Spacing.md,
     alignItems: 'center',
   },
-  emptyServerText: {
+  addServerText: {
     fontSize: FontSize.footnote,
   },
   serverChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.sm,
     borderRadius: Radius.sm,
-    borderWidth: 1,
+  },
+  serverChipSelected: {
+    backgroundColor: 'rgba(255,255,255,0.06)',
   },
   serverName: {
     fontSize: FontSize.footnote,
     fontWeight: '500',
+    flex: 1,
+    marginRight: Spacing.sm,
   },
   connectRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.sm,
+    paddingHorizontal: Spacing.md,
     marginTop: Spacing.xs,
   },
   connectButton: {
@@ -348,43 +342,44 @@ const styles = StyleSheet.create({
   },
   connectButtonText: {
     color: '#FFFFFF',
-    fontSize: FontSize.footnote,
+    fontSize: FontSize.caption,
     fontWeight: '600',
+  },
+  addIcon: {
+    fontSize: 20,
+    fontWeight: '300',
   },
   agentName: {
     fontSize: FontSize.caption,
-    flex: 1,
+    paddingHorizontal: Spacing.md,
   },
   errorText: {
     fontSize: FontSize.caption,
+    paddingHorizontal: Spacing.md,
   },
-  sessionsSection: {
+  divider: {
+    height: StyleSheet.hairlineWidth,
+    marginHorizontal: Spacing.md,
+    marginVertical: Spacing.md,
+  },
+  sessionsContainer: {
     flex: 1,
-    paddingHorizontal: Spacing.lg,
-    paddingTop: Spacing.lg,
+  },
+  sessionsList: {
+    paddingHorizontal: Spacing.md,
   },
   sessionItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.sm + 2,
     borderRadius: Radius.sm,
-    marginBottom: 2,
-    gap: Spacing.sm,
+    marginBottom: 1,
   },
-  sessionIcon: {
-    fontSize: 16,
-  },
-  sessionTextContainer: {
-    flex: 1,
+  sessionItemActive: {
+    backgroundColor: 'rgba(255,255,255,0.10)',
   },
   sessionTitle: {
     fontSize: FontSize.footnote,
-    fontWeight: '500',
-  },
-  sessionDate: {
-    fontSize: FontSize.caption - 1,
-    marginTop: 1,
+    fontWeight: '400',
   },
   emptySessionsList: {
     flex: 1,
@@ -397,21 +392,16 @@ const styles = StyleSheet.create({
     paddingTop: Spacing.xxl,
   },
   footer: {
-    paddingHorizontal: Spacing.lg,
-    paddingTop: Spacing.md,
+    paddingHorizontal: Spacing.md,
+    paddingTop: Spacing.sm,
     borderTopWidth: StyleSheet.hairlineWidth,
+    flexDirection: 'row',
   },
   footerButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
     paddingVertical: Spacing.sm,
-    gap: Spacing.sm,
+    paddingHorizontal: Spacing.sm,
   },
   footerIcon: {
-    fontSize: 18,
-  },
-  footerLabel: {
-    fontSize: FontSize.body,
-    fontWeight: '500',
+    fontSize: 20,
   },
 });

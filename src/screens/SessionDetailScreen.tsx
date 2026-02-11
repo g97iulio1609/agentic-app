@@ -1,6 +1,5 @@
 /**
- * Session detail screen — chat transcript + message composer.
- * Themed, with typing indicator and smart auto-scroll.
+ * Session detail screen — ChatGPT-style chat view with centered empty state.
  */
 
 import React, { useRef, useEffect, useCallback, useState } from 'react';
@@ -101,15 +100,12 @@ export function SessionDetailScreen() {
   const renderEmpty = useCallback(
     () => (
       <View style={styles.emptyContainer}>
-        <Text style={styles.emptyEmoji}>
-          {isConnected ? '💬' : '🔌'}
-        </Text>
-        <Text style={[styles.emptyTitle, { color: colors.textSecondary }]}>
-          {isConnected ? 'Start a conversation' : 'Not connected'}
+        <Text style={[styles.emptyTitle, { color: colors.text }]}>
+          {isConnected ? 'Agentic' : 'Not connected'}
         </Text>
         <Text style={[styles.emptySubtitle, { color: colors.textTertiary }]}>
           {isConnected
-            ? 'Type a message below to chat with the agent'
+            ? 'How can I help you today?'
             : 'Open the sidebar to connect to a server'}
         </Text>
       </View>
@@ -170,7 +166,6 @@ const styles = StyleSheet.create({
   },
   messageList: {
     paddingVertical: Spacing.sm,
-    paddingBottom: Spacing.md,
   },
   emptyList: {
     flex: 1,
@@ -182,13 +177,10 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
     paddingHorizontal: Spacing.xxl,
   },
-  emptyEmoji: {
-    fontSize: 48,
-    marginBottom: Spacing.sm,
-  },
   emptyTitle: {
-    fontSize: FontSize.title3,
+    fontSize: FontSize.title1,
     fontWeight: '600',
+    marginBottom: Spacing.xs,
   },
   emptySubtitle: {
     fontSize: FontSize.body,

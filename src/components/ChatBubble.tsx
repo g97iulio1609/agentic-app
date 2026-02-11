@@ -1,5 +1,5 @@
 /**
- * Chat message bubble component — themed, markdown-enabled, animated.
+ * Chat message component — ChatGPT style: full-width blocks, no bubbles.
  */
 
 import React, { useState, useEffect, useRef } from 'react';
@@ -24,7 +24,7 @@ export function ChatBubble({ message }: Props) {
   const isUser = message.role === 'user';
   const isSystem = message.role === 'system';
 
-  // Fade-in + slide-up animation
+  // Fade-in animation
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(10)).current;
 
@@ -35,51 +35,60 @@ export function ChatBubble({ message }: Props) {
     ]).start();
   }, [fadeAnim, slideAnim]);
 
-  const mdStyles = markdownStyles(colors, isUser);
+  const mdStyles = markdownStyles(colors);
 
   return (
     <Animated.View
       style={[
         styles.container,
-        isUser ? styles.userContainer : styles.assistantContainer,
+        {
+          backgroundColor: isUser ? colors.userMessageBg : colors.assistantMessageBg,
+          opacity: fadeAnim,
+          transform: [{ translateY: slideAnim }],
+        },
         isSystem && styles.systemContainer,
-        { opacity: fadeAnim, transform: [{ translateY: slideAnim }] },
       ]}
     >
-      <View
-        style={[
-          styles.bubble,
-          isUser
-            ? [styles.userBubble, { backgroundColor: colors.userBubble }]
-            : [styles.assistantBubble, { backgroundColor: colors.assistantBubble }],
-          isSystem && styles.systemBubble,
-        ]}
-      >
-        {message.segments && message.segments.length > 0 ? (
-          message.segments.map((segment, index) => (
-            <SegmentView key={index} segment={segment} colors={colors} isUser={isUser} mdStyles={mdStyles} />
-          ))
-        ) : isUser || isSystem ? (
-          <Text
-            style={[
-              styles.messageText,
-              { color: isUser ? colors.userBubbleText : colors.text },
-              isSystem && { color: colors.systemGray, fontStyle: 'italic', fontSize: FontSize.footnote, textAlign: 'center' },
-            ]}
-            selectable
-          >
-            {message.content}
-          </Text>
-        ) : (
-          <Markdown style={mdStyles}>{message.content}</Markdown>
+      <View style={styles.messageRow}>
+        {/* Assistant avatar */}
+        {!isUser && !isSystem && (
+          <View style={styles.avatarContainer}>
+            <View style={[styles.avatar, { backgroundColor: colors.primary }]}>
+              <Text style={styles.avatarIcon}>✦</Text>
+            </View>
+          </View>
         )}
-        {message.isStreaming && (
-          <ActivityIndicator
-            size="small"
-            color={isUser ? '#FFFFFF' : colors.primary}
-            style={styles.streamingIndicator}
-          />
-        )}
+
+        <View style={[styles.contentContainer, isUser && styles.userContentContainer]}>
+          {message.segments && message.segments.length > 0 ? (
+            message.segments.map((segment, index) => (
+              <SegmentView key={index} segment={segment} colors={colors} isUser={isUser} mdStyles={mdStyles} />
+            ))
+          ) : isUser ? (
+            <Text
+              style={[styles.messageText, { color: colors.userBubbleText }]}
+              selectable
+            >
+              {message.content}
+            </Text>
+          ) : isSystem ? (
+            <Text
+              style={[styles.systemText, { color: colors.textTertiary }]}
+              selectable
+            >
+              {message.content}
+            </Text>
+          ) : (
+            <Markdown style={mdStyles}>{message.content}</Markdown>
+          )}
+          {message.isStreaming && (
+            <ActivityIndicator
+              size="small"
+              color={colors.textTertiary}
+              style={styles.streamingIndicator}
+            />
+          )}
+        </View>
       </View>
     </Animated.View>
   );
@@ -94,7 +103,7 @@ function SegmentView({
   segment: MessageSegment;
   colors: ThemeColors;
   isUser: boolean;
-  mdStyles: any;
+  mdStyles: ReturnType<typeof markdownStyles>;
 }) {
   const [expanded, setExpanded] = useState(false);
 
@@ -111,29 +120,32 @@ function SegmentView({
     case 'toolCall':
       return (
         <TouchableOpacity
-          style={[styles.toolCallContainer, { backgroundColor: colors.toolCallBackground }]}
+          style={[styles.toolCallContainer, { borderColor: colors.separator }]}
           onPress={() => setExpanded(!expanded)}
           activeOpacity={0.7}
         >
           <View style={styles.toolCallHeader}>
-            <Text style={styles.toolCallIcon}>⚙️</Text>
-            <Text style={[styles.toolCallName, { color: colors.text }]}>{segment.toolName}</Text>
+            <Text style={[styles.toolCallIcon, { color: colors.textTertiary }]}>🔧</Text>
+            <Text style={[styles.toolCallName, { color: colors.textSecondary }]}>{segment.toolName}</Text>
             {!segment.isComplete && (
-              <ActivityIndicator size="small" color={colors.orange} />
+              <ActivityIndicator size="small" color={colors.textTertiary} />
             )}
             {segment.isComplete && (
-              <Text style={{ color: colors.healthyGreen, fontWeight: 'bold' }}>✓</Text>
+              <Text style={{ color: colors.healthyGreen, fontSize: 12 }}>✓</Text>
             )}
+            <Text style={[styles.chevron, { color: colors.textTertiary }]}>
+              {expanded ? '▾' : '▸'}
+            </Text>
           </View>
           {expanded && (
             <View style={styles.toolCallDetails}>
-              <Text style={[styles.toolCallLabel, { color: colors.textSecondary }]}>Input:</Text>
+              <Text style={[styles.toolCallLabel, { color: colors.textTertiary }]}>Input:</Text>
               <Text style={[styles.toolCallCode, { color: colors.codeText, backgroundColor: colors.codeBackground }]} selectable>
                 {segment.input}
               </Text>
               {segment.result && (
                 <>
-                  <Text style={[styles.toolCallLabel, { color: colors.textSecondary }]}>Result:</Text>
+                  <Text style={[styles.toolCallLabel, { color: colors.textTertiary }]}>Result:</Text>
                   <Text style={[styles.toolCallCode, { color: colors.codeText, backgroundColor: colors.codeBackground }]} selectable>
                     {segment.result.substring(0, 500)}
                     {segment.result.length > 500 ? '…' : ''}
@@ -148,15 +160,15 @@ function SegmentView({
     case 'thought':
       return (
         <TouchableOpacity
-          style={[styles.thoughtContainer, { backgroundColor: colors.thoughtBackground }]}
+          style={styles.thoughtContainer}
           onPress={() => setExpanded(!expanded)}
           activeOpacity={0.7}
         >
-          <Text style={[styles.thoughtHeader, { color: colors.textSecondary }]}>
-            💭 {expanded ? 'Thinking' : 'Thinking…'}
+          <Text style={[styles.thoughtHeader, { color: colors.textTertiary }]}>
+            {expanded ? '▾ Thinking' : '▸ Thinking…'}
           </Text>
           {expanded && (
-            <Text style={[styles.thoughtContent, { color: colors.textSecondary }]} selectable>
+            <Text style={[styles.thoughtContent, { color: colors.textTertiary }]} selectable>
               {segment.content}
             </Text>
           )}
@@ -168,7 +180,7 @@ function SegmentView({
   }
 }
 
-function markdownStyles(colors: ThemeColors, _isUser: boolean) {
+function markdownStyles(colors: ThemeColors) {
   return {
     body: {
       color: colors.assistantBubbleText,
@@ -248,7 +260,7 @@ function markdownStyles(colors: ThemeColors, _isUser: boolean) {
       marginVertical: 4,
     },
     blockquote: {
-      borderLeftColor: colors.primary,
+      borderLeftColor: colors.textTertiary,
       borderLeftWidth: 3,
       paddingLeft: Spacing.md,
       marginVertical: 4,
@@ -265,36 +277,47 @@ function markdownStyles(colors: ThemeColors, _isUser: boolean) {
 const styles = StyleSheet.create({
   container: {
     paddingHorizontal: Spacing.lg,
-    paddingVertical: 3,
-  },
-  userContainer: {
-    alignItems: 'flex-end',
-  },
-  assistantContainer: {
-    alignItems: 'flex-start',
+    paddingVertical: Spacing.md,
   },
   systemContainer: {
+    paddingVertical: Spacing.xs,
+  },
+  messageRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    maxWidth: 768,
+    alignSelf: 'center',
+    width: '100%',
+  },
+  avatarContainer: {
+    marginRight: Spacing.md,
+    marginTop: 2,
+  },
+  avatar: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    justifyContent: 'center',
     alignItems: 'center',
   },
-  bubble: {
-    maxWidth: '82%',
-    borderRadius: Radius.lg + 2,
-    paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.sm + 4,
+  avatarIcon: {
+    color: '#FFFFFF',
+    fontSize: 14,
   },
-  userBubble: {
-    borderBottomRightRadius: 6,
+  contentContainer: {
+    flex: 1,
   },
-  assistantBubble: {
-    borderBottomLeftRadius: 6,
-  },
-  systemBubble: {
-    backgroundColor: 'transparent',
-    maxWidth: '90%',
+  userContentContainer: {
+    paddingLeft: 40,
   },
   messageText: {
     fontSize: FontSize.body,
     lineHeight: 24,
+  },
+  systemText: {
+    fontSize: FontSize.footnote,
+    fontStyle: 'italic',
+    textAlign: 'center',
   },
   streamingIndicator: {
     marginTop: Spacing.xs,
@@ -302,6 +325,7 @@ const styles = StyleSheet.create({
   },
   toolCallContainer: {
     borderRadius: Radius.sm,
+    borderWidth: StyleSheet.hairlineWidth,
     padding: Spacing.sm,
     marginVertical: Spacing.xs,
   },
@@ -311,12 +335,15 @@ const styles = StyleSheet.create({
     gap: Spacing.xs,
   },
   toolCallIcon: {
-    fontSize: 14,
+    fontSize: 13,
   },
   toolCallName: {
     fontSize: FontSize.footnote,
-    fontWeight: '600',
+    fontWeight: '500',
     flex: 1,
+  },
+  chevron: {
+    fontSize: 12,
   },
   toolCallDetails: {
     marginTop: Spacing.sm,
@@ -334,17 +361,18 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   thoughtContainer: {
-    borderRadius: Radius.sm,
-    padding: Spacing.sm,
+    paddingVertical: Spacing.xs,
     marginVertical: Spacing.xs,
   },
   thoughtHeader: {
     fontSize: FontSize.footnote,
     fontWeight: '500',
+    fontStyle: 'italic',
   },
   thoughtContent: {
     fontSize: FontSize.footnote,
     marginTop: Spacing.xs,
     fontStyle: 'italic',
+    lineHeight: 20,
   },
 });
