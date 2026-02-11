@@ -122,6 +122,11 @@ export function streamChat(
         system: config.systemPrompt,
         temperature: config.temperature,
         abortSignal: controller.signal,
+        ...(config.reasoningEnabled && config.reasoningEffort ? {
+          providerOptions: {
+            openai: { reasoningEffort: config.reasoningEffort },
+          },
+        } : {}),
       });
 
       for await (const chunk of result.textStream) {

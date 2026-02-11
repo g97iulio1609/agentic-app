@@ -9,7 +9,7 @@ import { AIProviderType, AIProviderInfo, AIModelInfo } from './types';
 function m(
   id: string,
   name: string,
-  opts: Partial<Pick<AIModelInfo, 'contextWindow' | 'supportsStreaming' | 'supportsTools' | 'supportsVision'>> = {},
+  opts: Partial<Pick<AIModelInfo, 'contextWindow' | 'supportsStreaming' | 'supportsTools' | 'supportsVision' | 'supportsReasoning' | 'supportedParameters'>> = {},
 ): AIModelInfo {
   return {
     id,
@@ -18,6 +18,8 @@ function m(
     supportsStreaming: opts.supportsStreaming ?? true,
     supportsTools: opts.supportsTools ?? true,
     supportsVision: opts.supportsVision ?? false,
+    supportsReasoning: opts.supportsReasoning ?? false,
+    supportedParameters: opts.supportedParameters ?? [],
   };
 }
 
@@ -33,9 +35,9 @@ const openai: AIProviderInfo = {
     m('gpt-4o', 'GPT-4o', { contextWindow: 128_000, supportsVision: true }),
     m('gpt-4o-mini', 'GPT-4o Mini', { contextWindow: 128_000, supportsVision: true }),
     m('gpt-4-turbo', 'GPT-4 Turbo', { contextWindow: 128_000, supportsVision: true }),
-    m('o1', 'o1', { contextWindow: 200_000, supportsTools: false }),
-    m('o1-mini', 'o1-mini', { contextWindow: 128_000, supportsTools: false }),
-    m('o3-mini', 'o3-mini', { contextWindow: 200_000, supportsTools: false }),
+    m('o1', 'o1', { contextWindow: 200_000, supportsTools: false, supportsReasoning: true }),
+    m('o1-mini', 'o1-mini', { contextWindow: 128_000, supportsTools: false, supportsReasoning: true }),
+    m('o3-mini', 'o3-mini', { contextWindow: 200_000, supportsTools: false, supportsReasoning: true }),
   ],
 };
 
@@ -141,7 +143,7 @@ const deepseek: AIProviderInfo = {
   defaultBaseUrl: 'https://api.deepseek.com/v1',
   models: [
     m('deepseek-chat', 'DeepSeek Chat', { contextWindow: 64_000 }),
-    m('deepseek-reasoner', 'DeepSeek Reasoner', { contextWindow: 64_000, supportsTools: false }),
+    m('deepseek-reasoner', 'DeepSeek Reasoner', { contextWindow: 64_000, supportsTools: false, supportsReasoning: true }),
   ],
 };
 

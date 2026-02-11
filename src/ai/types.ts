@@ -39,7 +39,11 @@ export interface AIModelInfo {
   supportsStreaming: boolean;
   supportsTools: boolean;
   supportsVision: boolean;
+  supportsReasoning: boolean;
+  supportedParameters: string[];
 }
+
+export type ReasoningEffort = 'none' | 'minimal' | 'low' | 'medium' | 'high' | 'xhigh';
 
 /** Configuration stored per AI Provider "server". */
 export interface AIProviderConfig {
@@ -49,4 +53,6 @@ export interface AIProviderConfig {
   baseUrl?: string;
   systemPrompt?: string;
   temperature?: number;
+  reasoningEnabled?: boolean;
+  reasoningEffort?: ReasoningEffort;
 }

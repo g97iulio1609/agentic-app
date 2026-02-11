@@ -3,7 +3,7 @@
  * Supports ACP, Codex, and AI Provider server types.
  */
 
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import {
   View,
   Text,
@@ -14,6 +14,7 @@ import {
   ScrollView,
   KeyboardAvoidingView,
   Platform,
+  ActivityIndicator,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
@@ -21,8 +22,10 @@ import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useAppStore } from '../stores/appStore';
 import { ServerType } from '../acp/models/types';
-import { AIProviderType, AIProviderConfig } from '../ai/types';
+import { AIProviderType, AIProviderConfig, ReasoningEffort } from '../ai/types';
 import { ALL_PROVIDERS, getProviderInfo } from '../ai/providers';
+import { fetchModelsFromProvider, FetchedModel } from '../ai/ModelFetcher';
+import { getCachedModels, setCachedModels } from '../ai/ModelCache';
 import { saveApiKey } from '../storage/SecureStorage';
 import { useTheme, FontSize, Spacing, Radius } from '../utils/theme';
 import type { RootStackParamList } from '../navigation';
@@ -77,6 +80,15 @@ export function AddServerScreen() {
   const [temperature, setTemperature] = useState<number | undefined>(
     editingAI?.temperature,
   );
+  const [fetchedModels, setFetchedModels] = useState<FetchedModel[] | null>(null);
+  const [isFetchingModels, setIsFetchingModels] = useState(false);
+  const [fetchError, setFetchError] = useState<string | null>(null);
+  const [reasoningEnabled, setReasoningEnabled] = useState(
+    editingAI?.reasoningEnabled ?? false,
+  );
+  const [reasoningEffort, setReasoningEffort] = useState<ReasoningEffort>(
+    editingAI?.reasoningEffort ?? 'medium',
+  );
 
   const isEditing = !!editingServer;
 
@@ -94,15 +106,72 @@ export function AddServerScreen() {
       setSelectedModel(info.models[0]?.id ?? '');
       setBaseUrl(info.defaultBaseUrl ?? '');
       setShowBaseUrl(info.requiresBaseUrl);
+      setFetchedModels(null);
+      setFetchError(null);
+      setReasoningEnabled(false);
     },
     [],
   );
 
+  // Load cached models on mount / provider change
+  useEffect(() => {
+    (async () => {
+      const cached = await getCachedModels(selectedProvider);
+      if (cached && cached.length > 0) {
+        setFetchedModels(cached);
+      }
+    })();
+  }, [selectedProvider]);
+
+  const handleFetchModels = useCallback(async () => {
+    if (!apiKey.trim()) {
+      Alert.alert('API Key Required', 'Enter your API key first to fetch available models.');
+      return;
+    }
+    setIsFetchingModels(true);
+    setFetchError(null);
+    try {
+      const info = getProviderInfo(selectedProvider);
+      const models = await fetchModelsFromProvider(
+        selectedProvider,
+        apiKey.trim(),
+        baseUrl.trim() || info.defaultBaseUrl,
+      );
+      setFetchedModels(models);
+      await setCachedModels(selectedProvider, models);
+      if (models.length > 0) setSelectedModel(models[0].id);
+    } catch (err) {
+      setFetchError((err as Error).message);
+    } finally {
+      setIsFetchingModels(false);
+    }
+  }, [apiKey, selectedProvider, baseUrl]);
+
+  // Models to display: fetched > static
+  const displayModels = useMemo(() => {
+    if (fetchedModels && fetchedModels.length > 0) return fetchedModels;
+    return providerInfo.models.map(m => ({
+      id: m.id,
+      name: m.name,
+      contextWindow: m.contextWindow,
+      supportsReasoning: m.supportsReasoning,
+      supportsTools: m.supportsTools,
+      supportsVision: m.supportsVision,
+      supportedParameters: m.supportedParameters,
+    }));
+  }, [fetchedModels, providerInfo]);
+
+  // Check if selected model supports reasoning
+  const selectedModelInfo = useMemo(
+    () => displayModels.find(m => m.id === selectedModel),
+    [displayModels, selectedModel],
+  );
+
   // Auto-fill name from provider + model
   const autoName = useMemo(() => {
-    const model = providerInfo.models.find(m => m.id === selectedModel);
+    const model = selectedModelInfo;
     return model ? `${providerInfo.name} ${model.name}` : providerInfo.name;
-  }, [providerInfo, selectedModel]);
+  }, [providerInfo, selectedModelInfo]);
 
   // ── Save logic ──
 
@@ -135,6 +204,8 @@ export function AddServerScreen() {
           baseUrl: baseUrl.trim() || undefined,
           systemPrompt: systemPrompt.trim() || undefined,
           temperature,
+          reasoningEnabled: reasoningEnabled || undefined,
+          reasoningEffort: reasoningEnabled ? reasoningEffort : undefined,
         } as AIProviderConfig,
       };
 
@@ -205,6 +276,8 @@ export function AddServerScreen() {
     baseUrl,
     systemPrompt,
     temperature,
+    reasoningEnabled,
+    reasoningEffort,
     autoName,
     isEditing,
     editingServer,
@@ -317,8 +390,29 @@ export function AddServerScreen() {
 
             {/* Model Picker */}
             <View style={[styles.card, { backgroundColor: colors.cardBackground }]}>
-              <Text style={[styles.cardLabel, { color: colors.textTertiary }]}>Model</Text>
-              {providerInfo.models.map((model, idx) => {
+              <View style={styles.modelHeader}>
+                <Text style={[styles.cardLabel, { color: colors.textTertiary }]}>Model</Text>
+                <TouchableOpacity
+                  style={[styles.fetchButton, { backgroundColor: colors.primary }]}
+                  onPress={handleFetchModels}
+                  disabled={isFetchingModels}
+                  activeOpacity={0.7}
+                >
+                  {isFetchingModels ? (
+                    <ActivityIndicator size="small" color="#FFFFFF" />
+                  ) : (
+                    <Text style={styles.fetchButtonText}>
+                      {fetchedModels ? '↻ Refresh' : '⬇ Fetch Models'}
+                    </Text>
+                  )}
+                </TouchableOpacity>
+              </View>
+              {fetchError && (
+                <Text style={[styles.fetchErrorText, { color: colors.destructive }]}>
+                  {fetchError}
+                </Text>
+              )}
+              {displayModels.map((model, idx) => {
                 const isSelected = model.id === selectedModel;
                 return (
                   <React.Fragment key={model.id}>
@@ -335,11 +429,19 @@ export function AddServerScreen() {
                     >
                       <View style={styles.modelInfo}>
                         <Text style={[styles.modelName, { color: colors.text }]}>{model.name}</Text>
-                        {model.contextWindow && (
-                          <Text style={[styles.modelMeta, { color: colors.textTertiary }]}>
-                            {Math.round(model.contextWindow / 1000)}K context
-                          </Text>
-                        )}
+                        <View style={styles.modelBadges}>
+                          {model.contextWindow != null && (
+                            <Text style={[styles.modelMeta, { color: colors.textTertiary }]}>
+                              {Math.round(model.contextWindow / 1000)}K
+                            </Text>
+                          )}
+                          {model.supportsReasoning && (
+                            <Text style={[styles.modelBadge, { color: colors.primary }]}>🧠</Text>
+                          )}
+                          {model.supportsVision && (
+                            <Text style={[styles.modelBadge, { color: colors.primary }]}>👁</Text>
+                          )}
+                        </View>
                       </View>
                       <View
                         style={[
@@ -355,6 +457,79 @@ export function AddServerScreen() {
                 );
               })}
             </View>
+
+            {/* Reasoning Controls — shown when selected model supports reasoning */}
+            {selectedModelInfo?.supportsReasoning && (
+              <View style={[styles.card, { backgroundColor: colors.cardBackground }]}>
+                <Text style={[styles.cardLabel, { color: colors.textTertiary }]}>Reasoning</Text>
+                <TouchableOpacity
+                  style={styles.fieldRow}
+                  onPress={() => {
+                    Haptics.selectionAsync();
+                    setReasoningEnabled(!reasoningEnabled);
+                  }}
+                  activeOpacity={0.7}
+                >
+                  <Text style={[styles.fieldLabel, { color: colors.text, width: undefined }]}>
+                    Enable Reasoning
+                  </Text>
+                  <View
+                    style={[
+                      styles.toggleTrack,
+                      { backgroundColor: reasoningEnabled ? colors.primary : colors.systemGray4 },
+                    ]}
+                  >
+                    <View
+                      style={[
+                        styles.toggleThumb,
+                        reasoningEnabled && styles.toggleThumbOn,
+                      ]}
+                    />
+                  </View>
+                </TouchableOpacity>
+                {reasoningEnabled && (
+                  <>
+                    <View style={[styles.fieldSeparator, { backgroundColor: colors.separator }]} />
+                    <Text style={[styles.effortLabel, { color: colors.textTertiary }]}>
+                      Effort: {reasoningEffort}
+                    </Text>
+                    <ScrollView
+                      horizontal
+                      showsHorizontalScrollIndicator={false}
+                      contentContainerStyle={styles.chipContainer}
+                    >
+                      {(['none', 'minimal', 'low', 'medium', 'high', 'xhigh'] as ReasoningEffort[]).map(level => {
+                        const isSelected = reasoningEffort === level;
+                        return (
+                          <TouchableOpacity
+                            key={level}
+                            style={[
+                              styles.tempChip,
+                              { borderColor: colors.separator },
+                              isSelected && { backgroundColor: colors.primary, borderColor: colors.primary },
+                            ]}
+                            onPress={() => {
+                              Haptics.selectionAsync();
+                              setReasoningEffort(level);
+                            }}
+                          >
+                            <Text
+                              style={[
+                                styles.tempChipLabel,
+                                { color: colors.text },
+                                isSelected && { color: '#FFFFFF' },
+                              ]}
+                            >
+                              {level}
+                            </Text>
+                          </TouchableOpacity>
+                        );
+                      })}
+                    </ScrollView>
+                  </>
+                )}
+              </View>
+            )}
 
             {/* Name */}
             <View style={[styles.card, { backgroundColor: colors.cardBackground }]}>
@@ -781,5 +956,64 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.sm,
     paddingBottom: Spacing.md,
     minHeight: 80,
+  },
+
+  // ── Fetch models ──
+  modelHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingRight: 0,
+  },
+  fetchButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: Spacing.md,
+    paddingVertical: 6,
+    borderRadius: Radius.sm,
+    marginTop: Spacing.sm,
+    minWidth: 60,
+    justifyContent: 'center',
+  },
+  fetchButtonText: {
+    color: '#FFFFFF',
+    fontSize: FontSize.caption,
+    fontWeight: '600',
+  },
+  fetchErrorText: {
+    fontSize: FontSize.caption,
+    paddingBottom: Spacing.sm,
+  },
+  modelBadges: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginTop: 2,
+  },
+  modelBadge: {
+    fontSize: FontSize.caption,
+  },
+
+  // ── Reasoning controls ──
+  toggleTrack: {
+    width: 48,
+    height: 28,
+    borderRadius: 14,
+    padding: 2,
+    justifyContent: 'center',
+  },
+  toggleThumb: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: '#FFFFFF',
+  },
+  toggleThumbOn: {
+    alignSelf: 'flex-end',
+  },
+  effortLabel: {
+    fontSize: FontSize.caption,
+    paddingBottom: Spacing.sm,
+    paddingTop: Spacing.xs,
   },
 });
