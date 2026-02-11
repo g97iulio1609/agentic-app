@@ -1,0 +1,168 @@
+/**
+ * ACPService – high-level RPC layer over ACPClient.
+ * Mirrors the Swift ACPService: send JSON-RPC requests and await responses.
+ */
+
+import { ACPClient, ACPClientConfig, ACPClientListener } from './ACPClient';
+import { ACPMethods } from './ACPMethods';
+import {
+  makeRequest,
+  JSONRPCResponse,
+  ACPWireMessage,
+  RPCID,
+  isResponse,
+  isNotification,
+  JSONValue,
+} from './models';
+import {
+  buildInitializeParams,
+  buildSessionNewParams,
+  buildSessionLoadParams,
+  buildSessionResumeParams,
+  buildSessionPromptParams,
+  buildSessionCancelParams,
+  buildSessionSetModeParams,
+  InitializeParams,
+  SessionNewParams,
+  SessionLoadParams,
+  SessionResumeParams,
+  SessionPromptParams,
+  SessionCancelParams,
+  SessionSetModeParams,
+} from './ACPMessageBuilder';
+import { ACPConnectionState } from './models/types';
+
+type PendingRequest = {
+  resolve: (value: JSONRPCResponse) => void;
+  reject: (error: Error) => void;
+};
+
+export type ACPServiceListener = {
+  onStateChange?: (state: ACPConnectionState) => void;
+  onNotification?: (method: string, params?: JSONValue) => void;
+  onMessage?: (message: ACPWireMessage) => void;
+  onError?: (error: Error) => void;
+};
+
+export class ACPService {
+  private client: ACPClient;
+  private idCounter = 0;
+  private pendingRequests: Map<string, PendingRequest> = new Map();
+  private serviceListener: ACPServiceListener;
+
+  constructor(config: ACPClientConfig, listener: ACPServiceListener = {}) {
+    this.serviceListener = listener;
+
+    const clientListener: ACPClientListener = {
+      onStateChange: (state) => {
+        if (state === ACPConnectionState.Disconnected || state === ACPConnectionState.Failed) {
+          // Fail all pending requests
+          for (const [, pending] of this.pendingRequests) {
+            pending.reject(new Error('Disconnected'));
+          }
+          this.pendingRequests.clear();
+        }
+        this.serviceListener.onStateChange?.(state);
+      },
+      onMessage: (message) => {
+        this.handleMessage(message);
+      },
+      onError: (error) => {
+        this.serviceListener.onError?.(error);
+      },
+    };
+
+    this.client = new ACPClient(config, clientListener);
+  }
+
+  get state(): ACPConnectionState {
+    return this.client.state;
+  }
+
+  connect(): void {
+    this.client.connect();
+  }
+
+  disconnect(): void {
+    this.client.disconnect();
+  }
+
+  // --- RPC methods ---
+
+  async initialize(opts?: InitializeParams): Promise<JSONRPCResponse> {
+    return this.sendRequest(ACPMethods.initialize, buildInitializeParams(opts));
+  }
+
+  async createSession(opts?: SessionNewParams): Promise<JSONRPCResponse> {
+    return this.sendRequest(ACPMethods.sessionNew, buildSessionNewParams(opts));
+  }
+
+  async loadSession(opts: SessionLoadParams): Promise<JSONRPCResponse> {
+    return this.sendRequest(ACPMethods.sessionLoad, buildSessionLoadParams(opts));
+  }
+
+  async resumeSession(opts: SessionResumeParams): Promise<JSONRPCResponse> {
+    return this.sendRequest(ACPMethods.sessionResume, buildSessionResumeParams(opts));
+  }
+
+  async sendPrompt(opts: SessionPromptParams): Promise<JSONRPCResponse> {
+    return this.sendRequest(ACPMethods.sessionPrompt, buildSessionPromptParams(opts));
+  }
+
+  async cancelSession(opts: SessionCancelParams): Promise<JSONRPCResponse> {
+    return this.sendRequest(ACPMethods.sessionCancel, buildSessionCancelParams(opts));
+  }
+
+  async listSessions(): Promise<JSONRPCResponse> {
+    return this.sendRequest(ACPMethods.sessionList);
+  }
+
+  async setMode(opts: SessionSetModeParams): Promise<JSONRPCResponse> {
+    return this.sendRequest(ACPMethods.sessionSetMode, buildSessionSetModeParams(opts));
+  }
+
+  sendRawMessage(message: ACPWireMessage): void {
+    this.client.send(message);
+  }
+
+  // --- Internal ---
+
+  private nextId(): RPCID {
+    return ++this.idCounter;
+  }
+
+  private sendRequest(method: string, params?: JSONValue): Promise<JSONRPCResponse> {
+    return new Promise((resolve, reject) => {
+      const id = this.nextId();
+      const request = makeRequest(id, method, params);
+      const idKey = String(id);
+      this.pendingRequests.set(idKey, { resolve, reject });
+
+      try {
+        this.client.send(request);
+      } catch (error) {
+        this.pendingRequests.delete(idKey);
+        reject(error);
+      }
+    });
+  }
+
+  private handleMessage(message: ACPWireMessage): void {
+    this.serviceListener.onMessage?.(message);
+
+    if (isResponse(message)) {
+      const idKey = String(message.id);
+      const pending = this.pendingRequests.get(idKey);
+      if (pending) {
+        this.pendingRequests.delete(idKey);
+        if (message.error) {
+          pending.reject(new Error(`${message.error.code}: ${message.error.message}`));
+        } else {
+          pending.resolve(message);
+        }
+      }
+    } else if (isNotification(message)) {
+      this.serviceListener.onNotification?.(message.method, message.params);
+    }
+  }
+}
