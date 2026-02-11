@@ -461,7 +461,15 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
   sendPrompt: async (text) => {
     const state = get();
     const server = state.servers.find(s => s.id === state.selectedServerId);
-    if (!server || !state.selectedSessionId) return;
+    if (!server) return;
+
+    // Auto-create session if none selected
+    let sessionId = state.selectedSessionId;
+    if (!sessionId) {
+      await get().createSession();
+      sessionId = get().selectedSessionId;
+      if (!sessionId) return;
+    }
 
     // Add user message
     const userMessage: ChatMessage = {
@@ -480,11 +488,11 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
 
     // Persist user message & update session title
     const allMessages = [...state.chatMessages, userMessage];
-    if (state.selectedServerId && state.selectedSessionId) {
-      SessionStorage.saveMessages(allMessages, state.selectedServerId, state.selectedSessionId);
+    if (state.selectedServerId && sessionId) {
+      SessionStorage.saveMessages(allMessages, state.selectedServerId, sessionId);
       if (state.chatMessages.length === 0) {
         const title = text.substring(0, 50);
-        const session = state.sessions.find(s => s.id === state.selectedSessionId);
+        const session = state.sessions.find(s => s.id === sessionId);
         if (session) {
           SessionStorage.saveSession(
             { ...session, title, updatedAt: new Date().toISOString() },
@@ -492,7 +500,7 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
           );
           set(s => ({
             sessions: s.sessions.map(sess =>
-              sess.id === state.selectedSessionId ? { ...sess, title } : sess
+              sess.id === sessionId ? { ...sess, title } : sess
             ),
           }));
         }
@@ -577,6 +585,16 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
               streamingMessageId: null,
             }));
           },
+          // onReasoning
+          (reasoningChunk) => {
+            set(s => ({
+              chatMessages: s.chatMessages.map(m =>
+                m.id === assistantId
+                  ? { ...m, reasoning: (m.reasoning ?? '') + reasoningChunk }
+                  : m
+              ),
+            }));
+          },
         );
         return;
       } catch (error) {
@@ -602,7 +620,7 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
     try {
       get().appendLog(`→ session/prompt: ${text.substring(0, 80)}`);
       const response = await _service.sendPrompt({
-        sessionId: state.selectedSessionId,
+        sessionId: sessionId,
         text,
       });
       const result = response.result as Record<string, JSONValue> | undefined;

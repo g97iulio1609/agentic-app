@@ -60,6 +60,11 @@ export function ChatBubble({ message }: Props) {
         )}
 
         <View style={[styles.contentContainer, isUser && styles.userContentContainer]}>
+          {/* Reasoning / Thinking section */}
+          {!isUser && !isSystem && message.reasoning && (
+            <ReasoningView reasoning={message.reasoning} colors={colors} isStreaming={!!message.isStreaming && !message.content} />
+          )}
+
           {message.segments && message.segments.length > 0 ? (
             message.segments.map((segment, index) => (
               <SegmentView key={index} segment={segment} colors={colors} isUser={isUser} mdStyles={mdStyles} />
@@ -178,6 +183,50 @@ function SegmentView({
     default:
       return null;
   }
+}
+
+function ReasoningView({
+  reasoning,
+  colors,
+  isStreaming,
+}: {
+  reasoning: string;
+  colors: ThemeColors;
+  isStreaming: boolean;
+}) {
+  const [expanded, setExpanded] = useState(isStreaming);
+  const lines = reasoning.split('\n').length;
+  const preview = reasoning.length > 120 ? reasoning.substring(0, 120) + '…' : reasoning;
+
+  return (
+    <TouchableOpacity
+      style={[styles.reasoningContainer, { borderColor: colors.separator, backgroundColor: colors.codeBackground }]}
+      onPress={() => setExpanded(!expanded)}
+      activeOpacity={0.7}
+    >
+      <View style={styles.reasoningHeader}>
+        <Text style={[styles.reasoningIcon, { color: colors.primary }]}>🧠</Text>
+        <Text style={[styles.reasoningTitle, { color: colors.textSecondary }]}>
+          {isStreaming ? 'Thinking…' : `Thought for ${lines} lines`}
+        </Text>
+        {isStreaming && (
+          <ActivityIndicator size="small" color={colors.primary} />
+        )}
+        <Text style={[styles.chevron, { color: colors.textTertiary }]}>
+          {expanded ? '▾' : '▸'}
+        </Text>
+      </View>
+      {expanded ? (
+        <Text style={[styles.reasoningContent, { color: colors.textTertiary }]} selectable>
+          {reasoning}
+        </Text>
+      ) : !isStreaming ? (
+        <Text style={[styles.reasoningPreview, { color: colors.textTertiary }]} numberOfLines={2}>
+          {preview}
+        </Text>
+      ) : null}
+    </TouchableOpacity>
+  );
 }
 
 function markdownStyles(colors: ThemeColors) {
@@ -374,5 +423,37 @@ const styles = StyleSheet.create({
     marginTop: Spacing.xs,
     fontStyle: 'italic',
     lineHeight: 20,
+  },
+  reasoningContainer: {
+    borderRadius: Radius.sm,
+    borderWidth: StyleSheet.hairlineWidth,
+    padding: Spacing.sm,
+    marginBottom: Spacing.sm,
+  },
+  reasoningHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.xs,
+  },
+  reasoningIcon: {
+    fontSize: 14,
+  },
+  reasoningTitle: {
+    fontSize: FontSize.footnote,
+    fontWeight: '600',
+    flex: 1,
+  },
+  reasoningContent: {
+    fontSize: FontSize.footnote,
+    marginTop: Spacing.sm,
+    fontStyle: 'italic',
+    lineHeight: 20,
+  },
+  reasoningPreview: {
+    fontSize: FontSize.caption,
+    marginTop: Spacing.xs,
+    fontStyle: 'italic',
+    lineHeight: 18,
+    opacity: 0.7,
   },
 });
