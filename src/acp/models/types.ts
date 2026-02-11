@@ -68,14 +68,38 @@ export interface ChatMessage {
   content: string;
   reasoning?: string;
   segments?: MessageSegment[];
+  attachments?: Attachment[];
+  artifacts?: Artifact[];
   isStreaming?: boolean;
   timestamp: string;
+}
+
+export interface Attachment {
+  id: string;
+  name: string;
+  mediaType: string;      // e.g. 'image/jpeg', 'application/pdf'
+  uri: string;            // local file URI for preview
+  base64?: string;        // base64 encoded data for sending to AI
+  size?: number;          // file size in bytes
+}
+
+export type ArtifactType = 'code' | 'html' | 'svg' | 'mermaid' | 'csv' | 'markdown' | 'image';
+
+export interface Artifact {
+  id: string;
+  type: ArtifactType;
+  title: string;
+  content: string;        // raw content (code, HTML, SVG, etc.)
+  language?: string;       // for code: 'typescript', 'python', etc.
+  mediaType?: string;      // for images: 'image/png', etc.
 }
 
 export type MessageSegment =
   | { type: 'text'; content: string }
   | { type: 'toolCall'; toolName: string; input: string; result?: string; isComplete: boolean }
-  | { type: 'thought'; content: string };
+  | { type: 'thought'; content: string }
+  | { type: 'image'; url: string; alt?: string }
+  | { type: 'artifact'; artifactId: string };
 
 export interface ACPClientError {
   code: string;

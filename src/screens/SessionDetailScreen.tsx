@@ -19,7 +19,7 @@ import { useAppStore } from '../stores/appStore';
 import { ChatBubble } from '../components/ChatBubble';
 import { MessageComposer } from '../components/MessageComposer';
 import { TypingIndicator } from '../components/TypingIndicator';
-import { ChatMessage, ACPConnectionState } from '../acp/models/types';
+import { ChatMessage, ACPConnectionState, Attachment } from '../acp/models/types';
 import { useTheme, FontSize, Spacing } from '../utils/theme';
 
 export function SessionDetailScreen() {
@@ -86,11 +86,11 @@ export function SessionDetailScreen() {
     prevStreaming.current = isStreaming;
   }, [isStreaming, chatMessages.length]);
 
-  const handleSend = useCallback(() => {
+  const handleSend = useCallback((attachments?: Attachment[]) => {
     const text = promptText.trim();
-    if (!text) return;
+    if (!text && (!attachments || attachments.length === 0)) return;
     isNearBottom.current = true;
-    sendPrompt(text);
+    sendPrompt(text, attachments);
   }, [promptText, sendPrompt]);
 
   const renderMessage = useCallback(

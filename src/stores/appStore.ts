@@ -28,6 +28,7 @@ import { streamChat } from '../ai/AIService';
 import { getApiKey } from '../storage/SecureStorage';
 import { getProviderInfo } from '../ai/providers';
 import { MCPManager } from '../mcp/MCPManager';
+import type { Artifact, ArtifactType } from '../acp/models/types';
 import type { MCPServerConfig, MCPServerStatus } from '../mcp/types';
 
 // ─── Store State ───
@@ -84,7 +85,7 @@ interface AppActions {
   loadSessionMessages: (sessionId: string) => Promise<void>;
 
   // Chat
-  sendPrompt: (text: string) => Promise<void>;
+  sendPrompt: (text: string, attachments?: import('../acp/models/types').Attachment[]) => Promise<void>;
   cancelPrompt: () => Promise<void>;
   setPromptText: (text: string) => void;
 
@@ -108,6 +109,45 @@ interface AppActions {
 // ─── Private state ───
 let _service: ACPService | null = null;
 let _aiAbortController: AbortController | null = null;
+
+// ─── Artifact Detection ───
+
+const ARTIFACT_LANGS: Record<string, ArtifactType> = {
+  html: 'html',
+  htm: 'html',
+  svg: 'svg',
+  mermaid: 'mermaid',
+  csv: 'csv',
+  markdown: 'markdown',
+  md: 'markdown',
+};
+
+function detectArtifacts(content: string): Artifact[] {
+  const artifacts: Artifact[] = [];
+  // Match ```lang\n...\n``` blocks with substantial content (>100 chars)
+  const codeBlockRegex = /```(\w+)?\n([\s\S]*?)```/g;
+  let match: RegExpExecArray | null;
+  let idx = 0;
+
+  while ((match = codeBlockRegex.exec(content)) !== null) {
+    const lang = match[1]?.toLowerCase() ?? '';
+    const code = match[2].trim();
+    if (code.length < 100) continue; // skip small snippets
+
+    const artifactType: ArtifactType = ARTIFACT_LANGS[lang] ?? 'code';
+    const title = lang ? `${lang.charAt(0).toUpperCase() + lang.slice(1)} artifact` : `Code artifact`;
+
+    artifacts.push({
+      id: `art-${idx++}`,
+      type: artifactType,
+      title,
+      content: code,
+      language: lang || undefined,
+    });
+  }
+
+  return artifacts;
+}
 
 // ─── Store ───
 
@@ -474,7 +514,7 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
 
   // --- Chat ---
 
-  sendPrompt: async (text) => {
+  sendPrompt: async (text, attachments) => {
     const state = get();
     const server = state.servers.find(s => s.id === state.selectedServerId);
     if (!server) return;
@@ -487,11 +527,12 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
       if (!sessionId) return;
     }
 
-    // Add user message
+    // Add user message (with optional attachments)
     const userMessage: ChatMessage = {
       id: uuidv4(),
       role: 'user',
       content: text,
+      ...(attachments && attachments.length > 0 ? { attachments } : {}),
       timestamp: new Date().toISOString(),
     };
 
@@ -565,9 +606,16 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
           // onComplete
           (stopReason) => {
             _aiAbortController = null;
+
+            // Detect artifacts from code blocks in final content
+            const finalMessage = get().chatMessages.find(m => m.id === assistantId);
+            const artifacts = finalMessage ? detectArtifacts(finalMessage.content) : [];
+
             set(s => ({
               chatMessages: s.chatMessages.map(m =>
-                m.id === assistantId ? { ...m, isStreaming: false } : m
+                m.id === assistantId
+                  ? { ...m, isStreaming: false, ...(artifacts.length > 0 ? { artifacts } : {}) }
+                  : m
               ),
               isStreaming: false,
               streamingMessageId: null,
