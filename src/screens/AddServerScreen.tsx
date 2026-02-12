@@ -5,17 +5,15 @@
 
 import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import {
-  View,
-  Text,
   TextInput,
   TouchableOpacity,
-  StyleSheet,
   Alert,
   ScrollView,
   KeyboardAvoidingView,
   Platform,
   ActivityIndicator,
 } from 'react-native';
+import { YStack, XStack, Text, Separator } from 'tamagui';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
@@ -291,24 +289,33 @@ export function AddServerScreen() {
 
   return (
     <KeyboardAvoidingView
-      style={[styles.container, { backgroundColor: colors.systemGray6 }]}
+      style={{ flex: 1, backgroundColor: colors.systemGray6 }}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
       <ScrollView
-        style={styles.scrollView}
-        contentContainerStyle={[styles.scrollContent, { paddingBottom: Math.max(insets.bottom, Spacing.lg) + Spacing.lg }]}
+        style={{ flex: 1 }}
+        contentContainerStyle={{ padding: Spacing.lg, gap: Spacing.lg, paddingBottom: Math.max(insets.bottom, Spacing.lg) + Spacing.lg }}
         keyboardShouldPersistTaps="handled"
       >
         {/* Protocol section — 3-segment */}
-        <View style={[styles.card, { backgroundColor: colors.cardBackground }]}>
-          <Text style={[styles.cardLabel, { color: colors.textTertiary }]}>Protocol</Text>
-          <View style={[styles.segmentedControl, { backgroundColor: colors.systemGray5 }]}>
+        <YStack backgroundColor="$cardBackground" borderRadius={Radius.md} paddingHorizontal={Spacing.lg} overflow="hidden">
+          <Text color="$textTertiary" fontSize={FontSize.caption} fontWeight="600" textTransform="uppercase" letterSpacing={0.5} paddingTop={Spacing.md} paddingBottom={Spacing.sm}>
+            Protocol
+          </Text>
+          <XStack backgroundColor={colors.systemGray5} borderRadius={Radius.sm} padding={2} marginBottom={Spacing.md}>
             {([ServerType.ACP, ServerType.Codex, ServerType.AIProvider] as const).map(type => (
               <TouchableOpacity
                 key={type}
                 style={[
-                  styles.segment,
-                  serverType === type && [styles.segmentSelected, { backgroundColor: colors.cardBackground }],
+                  { flex: 1, paddingVertical: Spacing.sm, alignItems: 'center', borderRadius: 6 },
+                  serverType === type && {
+                    backgroundColor: colors.cardBackground,
+                    shadowColor: '#000',
+                    shadowOffset: { width: 0, height: 1 },
+                    shadowOpacity: 0.1,
+                    shadowRadius: 2,
+                    elevation: 2,
+                  },
                 ]}
                 onPress={() => {
                   Haptics.selectionAsync();
@@ -316,28 +323,28 @@ export function AddServerScreen() {
                 }}
               >
                 <Text
-                  style={[
-                    styles.segmentText,
-                    { color: colors.textTertiary },
-                    serverType === type && { color: colors.text, fontWeight: '600' },
-                  ]}
+                  fontSize={FontSize.footnote}
+                  fontWeight={serverType === type ? '600' : '500'}
+                  color={serverType === type ? '$color' : '$textTertiary'}
                 >
                   {type === ServerType.AIProvider ? 'AI Provider' : type === ServerType.Codex ? 'Codex' : 'ACP'}
                 </Text>
               </TouchableOpacity>
             ))}
-          </View>
-        </View>
+          </XStack>
+        </YStack>
 
         {serverType === ServerType.AIProvider ? (
           <>
             {/* Provider Picker — horizontal scroll chips */}
-            <View style={[styles.card, { backgroundColor: colors.cardBackground }]}>
-              <Text style={[styles.cardLabel, { color: colors.textTertiary }]}>Provider</Text>
+            <YStack backgroundColor="$cardBackground" borderRadius={Radius.md} paddingHorizontal={Spacing.lg} overflow="hidden">
+              <Text color="$textTertiary" fontSize={FontSize.caption} fontWeight="600" textTransform="uppercase" letterSpacing={0.5} paddingTop={Spacing.md} paddingBottom={Spacing.sm}>
+                Provider
+              </Text>
               <ScrollView
                 horizontal
                 showsHorizontalScrollIndicator={false}
-                contentContainerStyle={styles.chipContainer}
+                contentContainerStyle={{ paddingBottom: Spacing.md, gap: Spacing.sm }}
               >
                 {ALL_PROVIDERS.map(p => {
                   const isSelected = p.type === selectedProvider;
@@ -345,20 +352,26 @@ export function AddServerScreen() {
                     <TouchableOpacity
                       key={p.type}
                       style={[
-                        styles.chip,
-                        { borderColor: colors.separator },
+                        {
+                          flexDirection: 'row',
+                          alignItems: 'center',
+                          paddingHorizontal: Spacing.md,
+                          paddingVertical: Spacing.sm,
+                          borderRadius: Radius.full,
+                          borderWidth: 1,
+                          borderColor: colors.separator,
+                          gap: 4,
+                        },
                         isSelected && { backgroundColor: colors.primary, borderColor: colors.primary },
                       ]}
                       onPress={() => handleProviderChange(p.type)}
                       activeOpacity={0.7}
                     >
-                      <Text style={styles.chipIcon}>{p.icon}</Text>
+                      <Text fontSize={14}>{p.icon}</Text>
                       <Text
-                        style={[
-                          styles.chipLabel,
-                          { color: colors.text },
-                          isSelected && { color: '#FFFFFF' },
-                        ]}
+                        fontSize={FontSize.footnote}
+                        fontWeight="500"
+                        color={isSelected ? '$contrastText' : '$color'}
                         numberOfLines={1}
                       >
                         {p.name}
@@ -367,14 +380,14 @@ export function AddServerScreen() {
                   );
                 })}
               </ScrollView>
-            </View>
+            </YStack>
 
             {/* API Key */}
-            <View style={[styles.card, { backgroundColor: colors.cardBackground }]}>
-              <View style={styles.fieldRow}>
-                <Text style={[styles.fieldLabel, { color: colors.text }]}>API Key</Text>
+            <YStack backgroundColor="$cardBackground" borderRadius={Radius.md} paddingHorizontal={Spacing.lg} overflow="hidden">
+              <XStack alignItems="center" justifyContent="space-between" paddingVertical={Spacing.md} minHeight={44}>
+                <Text color="$color" fontSize={FontSize.body} fontWeight="400" width={90}>API Key</Text>
                 <TextInput
-                  style={[styles.fieldInput, { color: colors.text }]}
+                  style={{ flex: 1, fontSize: FontSize.body, color: colors.text, textAlign: 'right', paddingVertical: 0 }}
                   value={apiKey}
                   onChangeText={setApiKey}
                   placeholder={isEditing ? '••••••••' : 'sk-...'}
@@ -383,34 +396,46 @@ export function AddServerScreen() {
                   autoCorrect={false}
                   secureTextEntry
                 />
-              </View>
-              <Text style={[styles.secureNote, { color: colors.textTertiary }]}>
+              </XStack>
+              <Text color="$textTertiary" fontSize={FontSize.caption} paddingBottom={Spacing.md}>
                 🔒 Stored securely on device
               </Text>
-            </View>
+            </YStack>
 
             {/* Model Picker */}
-            <View style={[styles.card, { backgroundColor: colors.cardBackground }]}>
-              <View style={styles.modelHeader}>
-                <Text style={[styles.cardLabel, { color: colors.textTertiary }]}>Model</Text>
+            <YStack backgroundColor="$cardBackground" borderRadius={Radius.md} paddingHorizontal={Spacing.lg} overflow="hidden">
+              <XStack alignItems="center" justifyContent="space-between">
+                <Text color="$textTertiary" fontSize={FontSize.caption} fontWeight="600" textTransform="uppercase" letterSpacing={0.5} paddingTop={Spacing.md} paddingBottom={Spacing.sm}>
+                  Model
+                </Text>
                 <TouchableOpacity
-                  style={[styles.fetchButton, { backgroundColor: colors.primary }]}
+                  style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    paddingHorizontal: Spacing.md,
+                    paddingVertical: 6,
+                    borderRadius: Radius.sm,
+                    marginTop: Spacing.sm,
+                    minWidth: 60,
+                    justifyContent: 'center',
+                    backgroundColor: colors.primary,
+                  }}
                   onPress={handleFetchModels}
                   disabled={isFetchingModels}
                   activeOpacity={0.7}
                   accessibilityLabel={fetchedModels ? 'Refresh models list' : 'Fetch available models'}
                 >
                   {isFetchingModels ? (
-                    <ActivityIndicator size="small" color="#FFFFFF" />
+                    <ActivityIndicator size="small" color={colors.contrastText} />
                   ) : (
-                    <Text style={styles.fetchButtonText}>
+                    <Text color="$contrastText" fontSize={FontSize.caption} fontWeight="600">
                       {fetchedModels ? '↻ Refresh' : '⬇ Fetch Models'}
                     </Text>
                   )}
                 </TouchableOpacity>
-              </View>
+              </XStack>
               {fetchError && (
-                <Text style={[styles.fetchErrorText, { color: colors.destructive }]}>
+                <Text color={colors.destructive} fontSize={FontSize.caption} paddingBottom={Spacing.sm}>
                   {fetchError}
                 </Text>
               )}
@@ -419,10 +444,16 @@ export function AddServerScreen() {
                 return (
                   <React.Fragment key={model.id}>
                     {idx > 0 && (
-                      <View style={[styles.fieldSeparator, { backgroundColor: colors.separator }]} />
+                      <Separator borderColor="$separator" />
                     )}
                     <TouchableOpacity
-                      style={styles.modelRow}
+                      style={{
+                        flexDirection: 'row',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        paddingVertical: Spacing.md,
+                        minHeight: 44,
+                      }}
                       onPress={() => {
                         Haptics.selectionAsync();
                         setSelectedModel(model.id);
@@ -431,76 +462,93 @@ export function AddServerScreen() {
                       accessibilityLabel={`Select model: ${model.name}`}
                       accessibilityState={{ selected: isSelected }}
                     >
-                      <View style={styles.modelInfo}>
-                        <Text style={[styles.modelName, { color: colors.text }]}>{model.name}</Text>
-                        <View style={styles.modelBadges}>
+                      <YStack flex={1}>
+                        <Text color="$color" fontSize={FontSize.body}>{model.name}</Text>
+                        <XStack alignItems="center" gap={6} marginTop={2}>
                           {model.contextWindow != null && (
-                            <Text style={[styles.modelMeta, { color: colors.textTertiary }]}>
+                            <Text color="$textTertiary" fontSize={FontSize.caption}>
                               {Math.round(model.contextWindow / 1000)}K
                             </Text>
                           )}
                           {model.supportsReasoning && (
-                            <Text style={[styles.modelBadge, { color: colors.primary }]}>🧠</Text>
+                            <Text color="$primary" fontSize={FontSize.caption}>🧠</Text>
                           )}
                           {model.supportsVision && (
-                            <Text style={[styles.modelBadge, { color: colors.primary }]}>👁</Text>
+                            <Text color="$primary" fontSize={FontSize.caption}>👁</Text>
                           )}
-                        </View>
-                      </View>
-                      <View
-                        style={[
-                          styles.radio,
-                          { borderColor: isSelected ? colors.primary : colors.systemGray3 },
-                          isSelected && { backgroundColor: colors.primary },
-                        ]}
+                        </XStack>
+                      </YStack>
+                      <YStack
+                        width={22}
+                        height={22}
+                        borderRadius={11}
+                        borderWidth={2}
+                        borderColor={isSelected ? '$primary' : colors.systemGray3}
+                        backgroundColor={isSelected ? '$primary' : undefined}
+                        alignItems="center"
+                        justifyContent="center"
+                        marginLeft={Spacing.md}
                       >
-                        {isSelected && <View style={styles.radioInner} />}
-                      </View>
+                        {isSelected && (
+                          <YStack width={10} height={10} borderRadius={5} backgroundColor="$contrastText" />
+                        )}
+                      </YStack>
                     </TouchableOpacity>
                   </React.Fragment>
                 );
               })}
-            </View>
+            </YStack>
 
             {/* Reasoning Controls — shown when selected model supports reasoning */}
             {selectedModelInfo?.supportsReasoning && (
-              <View style={[styles.card, { backgroundColor: colors.cardBackground }]}>
-                <Text style={[styles.cardLabel, { color: colors.textTertiary }]}>Reasoning</Text>
+              <YStack backgroundColor="$cardBackground" borderRadius={Radius.md} paddingHorizontal={Spacing.lg} overflow="hidden">
+                <Text color="$textTertiary" fontSize={FontSize.caption} fontWeight="600" textTransform="uppercase" letterSpacing={0.5} paddingTop={Spacing.md} paddingBottom={Spacing.sm}>
+                  Reasoning
+                </Text>
                 <TouchableOpacity
-                  style={styles.fieldRow}
+                  style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    paddingVertical: Spacing.md,
+                    minHeight: 44,
+                  }}
                   onPress={() => {
                     Haptics.selectionAsync();
                     setReasoningEnabled(!reasoningEnabled);
                   }}
                   activeOpacity={0.7}
                 >
-                  <Text style={[styles.fieldLabel, { color: colors.text, width: undefined }]}>
+                  <Text color="$color" fontSize={FontSize.body} fontWeight="400">
                     Enable Reasoning
                   </Text>
-                  <View
-                    style={[
-                      styles.toggleTrack,
-                      { backgroundColor: reasoningEnabled ? colors.primary : colors.systemGray4 },
-                    ]}
+                  <YStack
+                    width={48}
+                    height={28}
+                    borderRadius={14}
+                    padding={2}
+                    justifyContent="center"
+                    backgroundColor={reasoningEnabled ? '$primary' : colors.systemGray4}
                   >
-                    <View
-                      style={[
-                        styles.toggleThumb,
-                        reasoningEnabled && styles.toggleThumbOn,
-                      ]}
+                    <YStack
+                      width={24}
+                      height={24}
+                      borderRadius={12}
+                      backgroundColor="$contrastText"
+                      alignSelf={reasoningEnabled ? 'flex-end' : undefined}
                     />
-                  </View>
+                  </YStack>
                 </TouchableOpacity>
                 {reasoningEnabled && (
                   <>
-                    <View style={[styles.fieldSeparator, { backgroundColor: colors.separator }]} />
-                    <Text style={[styles.effortLabel, { color: colors.textTertiary }]}>
+                    <Separator borderColor="$separator" />
+                    <Text color="$textTertiary" fontSize={FontSize.caption} paddingBottom={Spacing.sm} paddingTop={Spacing.xs}>
                       Effort: {reasoningEffort}
                     </Text>
                     <ScrollView
                       horizontal
                       showsHorizontalScrollIndicator={false}
-                      contentContainerStyle={styles.chipContainer}
+                      contentContainerStyle={{ paddingBottom: Spacing.md, gap: Spacing.sm }}
                     >
                       {(['none', 'minimal', 'low', 'medium', 'high', 'xhigh'] as ReasoningEffort[]).map(level => {
                         const isSelected = reasoningEffort === level;
@@ -508,8 +556,14 @@ export function AddServerScreen() {
                           <TouchableOpacity
                             key={level}
                             style={[
-                              styles.tempChip,
-                              { borderColor: colors.separator },
+                              {
+                                paddingHorizontal: Spacing.md,
+                                paddingVertical: 8,
+                                borderRadius: Radius.md,
+                                borderWidth: 1,
+                                borderColor: colors.separator,
+                                marginRight: Spacing.sm,
+                              },
                               isSelected && { backgroundColor: colors.primary, borderColor: colors.primary },
                             ]}
                             onPress={() => {
@@ -518,11 +572,9 @@ export function AddServerScreen() {
                             }}
                           >
                             <Text
-                              style={[
-                                styles.tempChipLabel,
-                                { color: colors.text },
-                                isSelected && { color: '#FFFFFF' },
-                              ]}
+                              fontSize={FontSize.footnote}
+                              fontWeight="600"
+                              color={isSelected ? '$contrastText' : '$color'}
                             >
                               {level}
                             </Text>
@@ -532,29 +584,31 @@ export function AddServerScreen() {
                     </ScrollView>
                   </>
                 )}
-              </View>
+              </YStack>
             )}
 
             {/* Name */}
-            <View style={[styles.card, { backgroundColor: colors.cardBackground }]}>
-              <View style={styles.fieldRow}>
-                <Text style={[styles.fieldLabel, { color: colors.text }]}>Name</Text>
+            <YStack backgroundColor="$cardBackground" borderRadius={Radius.md} paddingHorizontal={Spacing.lg} overflow="hidden">
+              <XStack alignItems="center" justifyContent="space-between" paddingVertical={Spacing.md} minHeight={44}>
+                <Text color="$color" fontSize={FontSize.body} fontWeight="400" width={90}>Name</Text>
                 <TextInput
-                  style={[styles.fieldInput, { color: colors.text }]}
+                  style={{ flex: 1, fontSize: FontSize.body, color: colors.text, textAlign: 'right', paddingVertical: 0 }}
                   value={name}
                   onChangeText={setName}
                   placeholder={autoName}
                   placeholderTextColor={colors.systemGray2}
                   autoCapitalize="none"
                 />
-              </View>
-            </View>
+              </XStack>
+            </YStack>
 
             {/* System Prompt */}
-            <View style={[styles.card, { backgroundColor: colors.cardBackground }]}>
-              <Text style={[styles.cardLabel, { color: colors.textTertiary }]}>System Prompt (optional)</Text>
+            <YStack backgroundColor="$cardBackground" borderRadius={Radius.md} paddingHorizontal={Spacing.lg} overflow="hidden">
+              <Text color="$textTertiary" fontSize={FontSize.caption} fontWeight="600" textTransform="uppercase" letterSpacing={0.5} paddingTop={Spacing.md} paddingBottom={Spacing.sm}>
+                System Prompt (optional)
+              </Text>
               <TextInput
-                style={[styles.multilineInput, { color: colors.text }]}
+                style={{ fontSize: FontSize.body, color: colors.text, paddingVertical: Spacing.sm, paddingBottom: Spacing.md, minHeight: 80 }}
                 value={systemPrompt}
                 onChangeText={setSystemPrompt}
                 placeholder="You are a helpful assistant..."
@@ -563,17 +617,17 @@ export function AddServerScreen() {
                 numberOfLines={4}
                 textAlignVertical="top"
               />
-            </View>
+            </YStack>
 
             {/* Temperature */}
-            <View style={[styles.card, { backgroundColor: colors.cardBackground }]}>
-              <Text style={[styles.cardLabel, { color: colors.textTertiary }]}>
+            <YStack backgroundColor="$cardBackground" borderRadius={Radius.md} paddingHorizontal={Spacing.lg} overflow="hidden">
+              <Text color="$textTertiary" fontSize={FontSize.caption} fontWeight="600" textTransform="uppercase" letterSpacing={0.5} paddingTop={Spacing.md} paddingBottom={Spacing.sm}>
                 Temperature: {temperature !== undefined ? temperature.toFixed(1) : 'Default'}
               </Text>
               <ScrollView
                 horizontal
                 showsHorizontalScrollIndicator={false}
-                contentContainerStyle={styles.chipContainer}
+                contentContainerStyle={{ paddingBottom: Spacing.md, gap: Spacing.sm }}
               >
                 {[undefined, 0, 0.3, 0.5, 0.7, 1.0, 1.5, 2.0].map((t, idx) => {
                   const isSelected = temperature === t;
@@ -582,8 +636,14 @@ export function AddServerScreen() {
                     <TouchableOpacity
                       key={idx}
                       style={[
-                        styles.tempChip,
-                        { borderColor: colors.separator },
+                        {
+                          paddingHorizontal: Spacing.md,
+                          paddingVertical: 8,
+                          borderRadius: Radius.md,
+                          borderWidth: 1,
+                          borderColor: colors.separator,
+                          marginRight: Spacing.sm,
+                        },
                         isSelected && { backgroundColor: colors.primary, borderColor: colors.primary },
                       ]}
                       onPress={() => {
@@ -592,11 +652,9 @@ export function AddServerScreen() {
                       }}
                     >
                       <Text
-                        style={[
-                          styles.tempChipLabel,
-                          { color: colors.text },
-                          isSelected && { color: '#FFFFFF' },
-                        ]}
+                        fontSize={FontSize.footnote}
+                        fontWeight="600"
+                        color={isSelected ? '$contrastText' : '$color'}
                       >
                         {label}
                       </Text>
@@ -604,15 +662,15 @@ export function AddServerScreen() {
                   );
                 })}
               </ScrollView>
-            </View>
+            </YStack>
 
             {/* Base URL — shown for Custom or on demand */}
             {(providerInfo.requiresBaseUrl || showBaseUrl) && (
-              <View style={[styles.card, { backgroundColor: colors.cardBackground }]}>
-                <View style={styles.fieldRow}>
-                  <Text style={[styles.fieldLabel, { color: colors.text }]}>Base URL</Text>
+              <YStack backgroundColor="$cardBackground" borderRadius={Radius.md} paddingHorizontal={Spacing.lg} overflow="hidden">
+                <XStack alignItems="center" justifyContent="space-between" paddingVertical={Spacing.md} minHeight={44}>
+                  <Text color="$color" fontSize={FontSize.body} fontWeight="400" width={90}>Base URL</Text>
                   <TextInput
-                    style={[styles.fieldInput, { color: colors.text }]}
+                    style={{ flex: 1, fontSize: FontSize.body, color: colors.text, textAlign: 'right', paddingVertical: 0 }}
                     value={baseUrl}
                     onChangeText={setBaseUrl}
                     placeholder={providerInfo.defaultBaseUrl ?? 'https://api.example.com/v1'}
@@ -621,72 +679,82 @@ export function AddServerScreen() {
                     autoCorrect={false}
                     keyboardType="url"
                   />
-                </View>
-              </View>
+                </XStack>
+              </YStack>
             )}
 
             {/* Toggle Base URL override for non-Custom providers */}
             {!providerInfo.requiresBaseUrl && (
               <TouchableOpacity
-                style={[styles.card, { backgroundColor: colors.cardBackground }]}
+                style={{
+                  backgroundColor: colors.cardBackground,
+                  borderRadius: Radius.md,
+                  paddingHorizontal: Spacing.lg,
+                  overflow: 'hidden',
+                }}
                 onPress={() => setShowBaseUrl(!showBaseUrl)}
                 activeOpacity={0.7}
               >
-                <View style={styles.fieldRow}>
-                  <Text style={[styles.fieldLabel, { color: colors.text }]}>Override Base URL</Text>
-                  <Text style={[styles.chevronText, { color: colors.textTertiary }]}>
+                <XStack alignItems="center" justifyContent="space-between" paddingVertical={Spacing.md} minHeight={44}>
+                  <Text color="$color" fontSize={FontSize.body} fontWeight="400" width={90}>Override Base URL</Text>
+                  <Text color="$textTertiary" fontSize={14}>
                     {showBaseUrl ? '▾' : '▸'}
                   </Text>
-                </View>
+                </XStack>
               </TouchableOpacity>
             )}
           </>
         ) : (
           <>
             {/* Connection section — ACP / Codex */}
-            <View style={[styles.card, { backgroundColor: colors.cardBackground }]}>
-              <View style={styles.fieldRow}>
-                <Text style={[styles.fieldLabel, { color: colors.text }]}>Name</Text>
+            <YStack backgroundColor="$cardBackground" borderRadius={Radius.md} paddingHorizontal={Spacing.lg} overflow="hidden">
+              <XStack alignItems="center" justifyContent="space-between" paddingVertical={Spacing.md} minHeight={44}>
+                <Text color="$color" fontSize={FontSize.body} fontWeight="400" width={90}>Name</Text>
                 <TextInput
-                  style={[styles.fieldInput, { color: colors.text }]}
+                  style={{ flex: 1, fontSize: FontSize.body, color: colors.text, textAlign: 'right', paddingVertical: 0 }}
                   value={name}
                   onChangeText={setName}
                   placeholder="My Agent"
                   placeholderTextColor={colors.systemGray2}
                   autoCapitalize="none"
                 />
-              </View>
-              <View style={[styles.fieldSeparator, { backgroundColor: colors.separator }]} />
-              <View style={styles.fieldRow}>
-                <Text style={[styles.fieldLabel, { color: colors.text }]}>Scheme</Text>
-                <View style={[styles.segmentedControlSmall, { backgroundColor: colors.systemGray5 }]}>
+              </XStack>
+              <Separator borderColor="$separator" />
+              <XStack alignItems="center" justifyContent="space-between" paddingVertical={Spacing.md} minHeight={44}>
+                <Text color="$color" fontSize={FontSize.body} fontWeight="400" width={90}>Scheme</Text>
+                <XStack backgroundColor={colors.systemGray5} borderRadius={6} padding={2}>
                   {(['ws', 'wss'] as const).map(s => (
                     <TouchableOpacity
                       key={s}
                       style={[
-                        styles.segmentSmall,
-                        scheme === s && [styles.segmentSelected, { backgroundColor: colors.cardBackground }],
+                        { paddingHorizontal: Spacing.md, paddingVertical: 4, borderRadius: 5 },
+                        scheme === s && {
+                          backgroundColor: colors.cardBackground,
+                          shadowColor: '#000',
+                          shadowOffset: { width: 0, height: 1 },
+                          shadowOpacity: 0.1,
+                          shadowRadius: 2,
+                          elevation: 2,
+                        },
                       ]}
                       onPress={() => setScheme(s)}
                     >
                       <Text
-                        style={[
-                          styles.segmentTextSmall,
-                          { color: colors.textTertiary },
-                          scheme === s && { color: colors.text, fontWeight: '600' },
-                        ]}
+                        fontSize={FontSize.footnote}
+                        fontWeight={scheme === s ? '600' : '500'}
+                        color={scheme === s ? '$color' : '$textTertiary'}
                       >
                         {s}
                       </Text>
                     </TouchableOpacity>
                   ))}
-                </View>
-              </View>
-              <View style={[styles.fieldSeparator, { backgroundColor: colors.separator }]} />
-              <View style={styles.fieldRow}>
-                <Text style={[styles.fieldLabel, { color: colors.text }]}>Host</Text>
+                </XStack>
+              </XStack>
+              <Separator borderColor="$separator" />
+              <XStack alignItems="center" justifyContent="space-between" paddingVertical={Spacing.md} minHeight={44}>
+                <Text color="$color" fontSize={FontSize.body} fontWeight="400" width={90}>Host</Text>
                 <TextInput
-                  style={[styles.fieldInput, { color: colors.text }]}
+                  style={{ flex: 1, fontSize: FontSize.body, color: colors.text, textAlign: 'right', paddingVertical: 0 }}
                   value={host}
                   onChangeText={setHost}
                   placeholder="localhost:8765"
@@ -695,15 +763,15 @@ export function AddServerScreen() {
                   autoCorrect={false}
                   keyboardType="url"
                 />
-              </View>
-            </View>
+              </XStack>
+            </YStack>
 
             {/* Optional section */}
-            <View style={[styles.card, { backgroundColor: colors.cardBackground }]}>
-              <View style={styles.fieldRow}>
-                <Text style={[styles.fieldLabel, { color: colors.text }]}>Token</Text>
+            <YStack backgroundColor="$cardBackground" borderRadius={Radius.md} paddingHorizontal={Spacing.lg} overflow="hidden">
+              <XStack alignItems="center" justifyContent="space-between" paddingVertical={Spacing.md} minHeight={44}>
+                <Text color="$color" fontSize={FontSize.body} fontWeight="400" width={90}>Token</Text>
                 <TextInput
-                  style={[styles.fieldInput, { color: colors.text }]}
+                  style={{ flex: 1, fontSize: FontSize.body, color: colors.text, textAlign: 'right', paddingVertical: 0 }}
                   value={token}
                   onChangeText={setToken}
                   placeholder="Bearer token"
@@ -712,12 +780,12 @@ export function AddServerScreen() {
                   autoCorrect={false}
                   secureTextEntry
                 />
-              </View>
-              <View style={[styles.fieldSeparator, { backgroundColor: colors.separator }]} />
-              <View style={styles.fieldRow}>
-                <Text style={[styles.fieldLabel, { color: colors.text }]}>Directory</Text>
+              </XStack>
+              <Separator borderColor="$separator" />
+              <XStack alignItems="center" justifyContent="space-between" paddingVertical={Spacing.md} minHeight={44}>
+                <Text color="$color" fontSize={FontSize.body} fontWeight="400" width={90}>Directory</Text>
                 <TextInput
-                  style={[styles.fieldInput, { color: colors.text }]}
+                  style={{ flex: 1, fontSize: FontSize.body, color: colors.text, textAlign: 'right', paddingVertical: 0 }}
                   value={workingDirectory}
                   onChangeText={setWorkingDirectory}
                   placeholder="/path/to/workspace"
@@ -725,29 +793,34 @@ export function AddServerScreen() {
                   autoCapitalize="none"
                   autoCorrect={false}
                 />
-              </View>
-            </View>
+              </XStack>
+            </YStack>
 
             {/* Advanced: Cloudflare Access */}
             <TouchableOpacity
-              style={[styles.card, { backgroundColor: colors.cardBackground }]}
+              style={{
+                backgroundColor: colors.cardBackground,
+                borderRadius: Radius.md,
+                paddingHorizontal: Spacing.lg,
+                overflow: 'hidden',
+              }}
               onPress={() => setShowAdvanced(!showAdvanced)}
               activeOpacity={0.7}
             >
-              <View style={styles.fieldRow}>
-                <Text style={[styles.fieldLabel, { color: colors.text }]}>Cloudflare Access</Text>
-                <Text style={[styles.chevronText, { color: colors.textTertiary }]}>
+              <XStack alignItems="center" justifyContent="space-between" paddingVertical={Spacing.md} minHeight={44}>
+                <Text color="$color" fontSize={FontSize.body} fontWeight="400" width={90}>Cloudflare Access</Text>
+                <Text color="$textTertiary" fontSize={14}>
                   {showAdvanced ? '▾' : '▸'}
                 </Text>
-              </View>
+              </XStack>
             </TouchableOpacity>
 
             {showAdvanced && (
-              <View style={[styles.card, { backgroundColor: colors.cardBackground }]}>
-                <View style={styles.fieldRow}>
-                  <Text style={[styles.fieldLabel, { color: colors.text }]}>Client ID</Text>
+              <YStack backgroundColor="$cardBackground" borderRadius={Radius.md} paddingHorizontal={Spacing.lg} overflow="hidden">
+                <XStack alignItems="center" justifyContent="space-between" paddingVertical={Spacing.md} minHeight={44}>
+                  <Text color="$color" fontSize={FontSize.body} fontWeight="400" width={90}>Client ID</Text>
                   <TextInput
-                    style={[styles.fieldInput, { color: colors.text }]}
+                    style={{ flex: 1, fontSize: FontSize.body, color: colors.text, textAlign: 'right', paddingVertical: 0 }}
                     value={cfAccessClientId}
                     onChangeText={setCfAccessClientId}
                     placeholder="Client ID"
@@ -755,12 +828,12 @@ export function AddServerScreen() {
                     autoCapitalize="none"
                     autoCorrect={false}
                   />
-                </View>
-                <View style={[styles.fieldSeparator, { backgroundColor: colors.separator }]} />
-                <View style={styles.fieldRow}>
-                  <Text style={[styles.fieldLabel, { color: colors.text }]}>Secret</Text>
+                </XStack>
+                <Separator borderColor="$separator" />
+                <XStack alignItems="center" justifyContent="space-between" paddingVertical={Spacing.md} minHeight={44}>
+                  <Text color="$color" fontSize={FontSize.body} fontWeight="400" width={90}>Secret</Text>
                   <TextInput
-                    style={[styles.fieldInput, { color: colors.text }]}
+                    style={{ flex: 1, fontSize: FontSize.body, color: colors.text, textAlign: 'right', paddingVertical: 0 }}
                     value={cfAccessClientSecret}
                     onChangeText={setCfAccessClientSecret}
                     placeholder="Client Secret"
@@ -769,19 +842,25 @@ export function AddServerScreen() {
                     autoCorrect={false}
                     secureTextEntry
                   />
-                </View>
-              </View>
+                </XStack>
+              </YStack>
             )}
           </>
         )}
 
         {/* Save Button */}
         <TouchableOpacity
-          style={[styles.saveButton, { backgroundColor: colors.primary }]}
+          style={{
+            backgroundColor: colors.primary,
+            borderRadius: Radius.md,
+            paddingVertical: Spacing.md + 2,
+            alignItems: 'center',
+            marginTop: Spacing.sm,
+          }}
           onPress={handleSave}
           accessibilityLabel={isEditing ? 'Update server' : 'Save new server'}
         >
-          <Text style={styles.saveButtonText}>
+          <Text color="$contrastText" fontSize={FontSize.body} fontWeight="600">
             {isEditing ? 'Update Server' : 'Add Server'}
           </Text>
         </TouchableOpacity>
@@ -789,236 +868,3 @@ export function AddServerScreen() {
     </KeyboardAvoidingView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  scrollView: {
-    flex: 1,
-  },
-  scrollContent: {
-    padding: Spacing.lg,
-    gap: Spacing.lg,
-  },
-  card: {
-    borderRadius: Radius.md,
-    paddingHorizontal: Spacing.lg,
-    overflow: 'hidden',
-  },
-  cardLabel: {
-    fontSize: FontSize.caption,
-    fontWeight: '600',
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-    paddingTop: Spacing.md,
-    paddingBottom: Spacing.sm,
-  },
-  fieldRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: Spacing.md,
-    minHeight: 44,
-  },
-  fieldLabel: {
-    fontSize: FontSize.body,
-    fontWeight: '400',
-    width: 90,
-  },
-  fieldInput: {
-    flex: 1,
-    fontSize: FontSize.body,
-    textAlign: 'right',
-    paddingVertical: 0,
-  },
-  fieldSeparator: {
-    height: StyleSheet.hairlineWidth,
-    marginLeft: 0,
-  },
-  segmentedControl: {
-    flexDirection: 'row',
-    borderRadius: Radius.sm,
-    padding: 2,
-    marginBottom: Spacing.md,
-  },
-  segment: {
-    flex: 1,
-    paddingVertical: Spacing.sm,
-    alignItems: 'center',
-    borderRadius: 6,
-  },
-  segmentSelected: {
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 2,
-  },
-  segmentText: {
-    fontSize: FontSize.footnote,
-    fontWeight: '500',
-  },
-  segmentedControlSmall: {
-    flexDirection: 'row',
-    borderRadius: 6,
-    padding: 2,
-  },
-  segmentSmall: {
-    paddingHorizontal: Spacing.md,
-    paddingVertical: 4,
-    borderRadius: 5,
-  },
-  segmentTextSmall: {
-    fontSize: FontSize.footnote,
-    fontWeight: '500',
-  },
-  chevronText: {
-    fontSize: 14,
-  },
-  saveButton: {
-    borderRadius: Radius.md,
-    paddingVertical: Spacing.md + 2,
-    alignItems: 'center',
-    marginTop: Spacing.sm,
-  },
-  saveButtonText: {
-    color: '#FFFFFF',
-    fontSize: FontSize.body,
-    fontWeight: '600',
-  },
-
-  // ── AI Provider styles ──
-  chipContainer: {
-    paddingBottom: Spacing.md,
-    gap: Spacing.sm,
-  },
-  chip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.sm,
-    borderRadius: Radius.full,
-    borderWidth: 1,
-    gap: 4,
-  },
-  chipIcon: {
-    fontSize: 14,
-  },
-  chipLabel: {
-    fontSize: FontSize.footnote,
-    fontWeight: '500',
-  },
-  tempChip: {
-    paddingHorizontal: Spacing.md,
-    paddingVertical: 8,
-    borderRadius: Radius.md,
-    borderWidth: 1,
-    marginRight: Spacing.sm,
-  },
-  tempChipLabel: {
-    fontSize: FontSize.footnote,
-    fontWeight: '600',
-  },
-  secureNote: {
-    fontSize: FontSize.caption,
-    paddingBottom: Spacing.md,
-  },
-  modelRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: Spacing.md,
-    minHeight: 44,
-  },
-  modelInfo: {
-    flex: 1,
-  },
-  modelName: {
-    fontSize: FontSize.body,
-  },
-  modelMeta: {
-    fontSize: FontSize.caption,
-    marginTop: 2,
-  },
-  radio: {
-    width: 22,
-    height: 22,
-    borderRadius: 11,
-    borderWidth: 2,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginLeft: Spacing.md,
-  },
-  radioInner: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    backgroundColor: '#FFFFFF',
-  },
-  multilineInput: {
-    fontSize: FontSize.body,
-    paddingVertical: Spacing.sm,
-    paddingBottom: Spacing.md,
-    minHeight: 80,
-  },
-
-  // ── Fetch models ──
-  modelHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingRight: 0,
-  },
-  fetchButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: Spacing.md,
-    paddingVertical: 6,
-    borderRadius: Radius.sm,
-    marginTop: Spacing.sm,
-    minWidth: 60,
-    justifyContent: 'center',
-  },
-  fetchButtonText: {
-    color: '#FFFFFF',
-    fontSize: FontSize.caption,
-    fontWeight: '600',
-  },
-  fetchErrorText: {
-    fontSize: FontSize.caption,
-    paddingBottom: Spacing.sm,
-  },
-  modelBadges: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    marginTop: 2,
-  },
-  modelBadge: {
-    fontSize: FontSize.caption,
-  },
-
-  // ── Reasoning controls ──
-  toggleTrack: {
-    width: 48,
-    height: 28,
-    borderRadius: 14,
-    padding: 2,
-    justifyContent: 'center',
-  },
-  toggleThumb: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: '#FFFFFF',
-  },
-  toggleThumbOn: {
-    alignSelf: 'flex-end',
-  },
-  effortLabel: {
-    fontSize: FontSize.caption,
-    paddingBottom: Spacing.sm,
-    paddingTop: Spacing.xs,
-  },
-});
