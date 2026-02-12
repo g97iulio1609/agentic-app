@@ -2,7 +2,7 @@
  * Core AI service — creates provider models and streams chat completions.
  */
 
-import { streamText, type ModelMessage, type LanguageModel, type JSONValue, stepCountIs } from 'ai';
+import { streamText, stepCountIs, type ModelMessage, type LanguageModel, type JSONValue } from 'ai';
 import { createOpenAI as createOpenAIProvider } from '@ai-sdk/openai';
 import { createAnthropic } from '@ai-sdk/anthropic';
 import { createGoogleGenerativeAI } from '@ai-sdk/google';
@@ -10,6 +10,7 @@ import { createXai } from '@ai-sdk/xai';
 import { createOpenRouter } from '@openrouter/ai-sdk-provider';
 import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
 import { buildMCPTools } from '../mcp/MCPToolAdapter';
+import { buildSearchTools } from '../search/SearchTools';
 
 // React Native needs expo/fetch for streaming support
 let expoFetch: typeof globalThis.fetch | undefined;
@@ -176,7 +177,11 @@ export function streamChat(
 
   // Build MCP tools from connected servers
   const mcpTools = buildMCPTools();
-  const hasTools = Object.keys(mcpTools).length > 0;
+  // Build web search tools
+  const searchTools = config.webSearchEnabled !== false ? buildSearchTools() : {};
+  // Merge all tools
+  const allTools = { ...mcpTools, ...searchTools };
+  const hasTools = Object.keys(allTools).length > 0;
 
   // Fire-and-forget async IIFE — errors are forwarded via onError.
   (async () => {
@@ -187,7 +192,7 @@ export function streamChat(
         system: config.systemPrompt,
         temperature: config.temperature,
         abortSignal: controller.signal,
-        ...(hasTools ? { tools: mcpTools, stopWhen: stepCountIs(10) } : {}),
+        ...(hasTools ? { tools: allTools, stopWhen: stepCountIs(10) } : {}),
         ...(Object.keys(providerOptions).length > 0 ? { providerOptions } : {}),
       });
 

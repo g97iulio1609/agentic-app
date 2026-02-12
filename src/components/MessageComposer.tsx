@@ -50,6 +50,8 @@ interface Props {
   isStreaming: boolean;
   isDisabled: boolean;
   placeholder?: string;
+  isListening?: boolean;
+  onToggleVoice?: () => void;
 }
 
 export function MessageComposer({
@@ -60,6 +62,8 @@ export function MessageComposer({
   isStreaming,
   isDisabled,
   placeholder = 'Message',
+  isListening,
+  onToggleVoice,
 }: Props) {
   const { colors, dark } = useTheme();
   const insets = useSafeAreaInsets();
@@ -208,17 +212,38 @@ export function MessageComposer({
           >
             <View style={[styles.stopIcon, { backgroundColor: colors.background }]} />
           </TouchableOpacity>
-        ) : (
+        ) : canSend ? (
+          <TouchableOpacity
+            style={[styles.sendButton, { backgroundColor: colors.sendButtonBg }]}
+            onPress={handleSend}
+            activeOpacity={0.7}
+          >
+            <Text style={[styles.sendIcon, { color: colors.sendButtonIcon }]}>↑</Text>
+          </TouchableOpacity>
+        ) : onToggleVoice ? (
           <TouchableOpacity
             style={[
               styles.sendButton,
-              { backgroundColor: canSend ? colors.sendButtonBg : colors.sendButtonDisabledBg },
+              { backgroundColor: isListening ? colors.destructive : colors.sendButtonDisabledBg },
             ]}
-            onPress={handleSend}
-            disabled={!canSend}
+            onPress={() => {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+              onToggleVoice();
+            }}
             activeOpacity={0.7}
           >
-            <Text style={[styles.sendIcon, { color: canSend ? colors.sendButtonIcon : colors.textTertiary }]}>↑</Text>
+            <Text style={[styles.sendIcon, { color: isListening ? '#FFF' : colors.textTertiary }]}>
+              {isListening ? '⏹' : '🎙'}
+            </Text>
+          </TouchableOpacity>
+        ) : (
+          <TouchableOpacity
+            style={[styles.sendButton, { backgroundColor: colors.sendButtonDisabledBg }]}
+            onPress={handleSend}
+            disabled
+            activeOpacity={0.7}
+          >
+            <Text style={[styles.sendIcon, { color: colors.textTertiary }]}>↑</Text>
           </TouchableOpacity>
         )}
       </View>

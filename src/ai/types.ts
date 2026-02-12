@@ -55,4 +55,5 @@ export interface AIProviderConfig {
   temperature?: number;
   reasoningEnabled?: boolean;
   reasoningEffort?: ReasoningEffort;
+  webSearchEnabled?: boolean;
 }

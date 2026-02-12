@@ -22,6 +22,8 @@ import { ModelPickerBar } from '../components/ModelPickerBar';
 import { TypingIndicator } from '../components/TypingIndicator';
 import { ChatMessage, ACPConnectionState, Attachment, ServerType } from '../acp/models/types';
 import { useTheme, FontSize, Spacing } from '../utils/theme';
+import { useSpeech } from '../hooks/useSpeech';
+import { useVoiceInput } from '../hooks/useVoiceInput';
 
 export function SessionDetailScreen() {
   const { colors } = useTheme();
@@ -44,6 +46,26 @@ export function SessionDetailScreen() {
   const selectedServer = servers.find(s => s.id === selectedServerId);
   const isAIProvider = selectedServer?.serverType === ServerType.AIProvider;
   const isConnected = isAIProvider || (connectionState === ACPConnectionState.Connected && isInitialized);
+
+  // TTS
+  const { toggle: toggleSpeech, isSpeaking, stop: stopSpeech } = useSpeech();
+  const [speakingMessageId, setSpeakingMessageId] = useState<string | null>(null);
+
+  const handleSpeak = useCallback((text: string, messageId?: string) => {
+    if (speakingMessageId === messageId && isSpeaking) {
+      stopSpeech();
+      setSpeakingMessageId(null);
+    } else {
+      setSpeakingMessageId(messageId || null);
+      toggleSpeech(text);
+    }
+  }, [toggleSpeech, stopSpeech, isSpeaking, speakingMessageId]);
+
+  // STT
+  const { isListening, toggle: toggleVoice, isAvailable: voiceAvailable } = useVoiceInput({
+    onTranscript: (text) => setPromptText(text),
+    onFinalTranscript: (text) => setPromptText(text),
+  });
 
   // Smart auto-scroll: only scroll when user is near the bottom
   const isNearBottom = useRef(true);
@@ -98,8 +120,14 @@ export function SessionDetailScreen() {
   }, [promptText, sendPrompt]);
 
   const renderMessage = useCallback(
-    ({ item }: { item: ChatMessage }) => <ChatBubble message={item} />,
-    [],
+    ({ item }: { item: ChatMessage }) => (
+      <ChatBubble
+        message={item}
+        onSpeak={(text) => handleSpeak(text, item.id)}
+        isSpeaking={isSpeaking && speakingMessageId === item.id}
+      />
+    ),
+    [handleSpeak, isSpeaking, speakingMessageId],
   );
 
   // Pulsing animation for empty state icon
@@ -181,6 +209,8 @@ export function SessionDetailScreen() {
         onCancel={cancelPrompt}
         isStreaming={isStreaming}
         isDisabled={!isConnected}
+        isListening={isListening}
+        onToggleVoice={voiceAvailable ? toggleVoice : undefined}
       />
     </KeyboardAvoidingView>
   );

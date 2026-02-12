@@ -2,7 +2,7 @@
  * Chat message component — ChatGPT style: full-width blocks, no bubbles.
  */
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import {
   View,
   Text,
@@ -19,12 +19,15 @@ import {
 import Markdown from 'react-native-markdown-display';
 import { ChatMessage, MessageSegment, Attachment, Artifact, ArtifactType } from '../acp/models/types';
 import { useTheme, FontSize, Spacing, Radius, ThemeColors } from '../utils/theme';
+import { CodeBlock } from './CodeBlock';
 
 interface Props {
   message: ChatMessage;
+  onSpeak?: (text: string) => void;
+  isSpeaking?: boolean;
 }
 
-export function ChatBubble({ message }: Props) {
+export function ChatBubble({ message, onSpeak, isSpeaking }: Props) {
   const { colors } = useTheme();
   const isUser = message.role === 'user';
   const isSystem = message.role === 'system';
@@ -109,6 +112,21 @@ export function ChatBubble({ message }: Props) {
               style={styles.streamingIndicator}
             />
           )}
+
+          {/* Action bar: TTS for assistant messages */}
+          {!isUser && !isSystem && !message.isStreaming && message.content && (
+            <View style={styles.actionBar}>
+              <TouchableOpacity
+                style={styles.actionButton}
+                onPress={() => onSpeak?.(message.content)}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              >
+                <Text style={[styles.actionIcon, { color: isSpeaking ? colors.primary : colors.textTertiary }]}>
+                  {isSpeaking ? '🔊' : '🔈'}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          )}
         </View>
       </View>
     </Animated.View>
@@ -179,6 +197,19 @@ function getFileIcon(mediaType: string): string {
 
 // ── Markdown with inline images and artifacts ─────────────────────────────────
 
+// Custom render rules for syntax-highlighted code blocks
+const codeBlockRules = {
+  fence: (node: any, _children: any, _parent: any, _styles: any) => {
+    const lang = node.sourceInfo || '';
+    const code = node.content || '';
+    return <CodeBlock key={node.key} code={code.replace(/\n$/, '')} language={lang} />;
+  },
+  code_block: (node: any, _children: any, _parent: any, _styles: any) => {
+    const code = node.content || '';
+    return <CodeBlock key={node.key} code={code.replace(/\n$/, '')} language="" />;
+  },
+};
+
 function MarkdownWithArtifacts({
   content,
   mdStyles,
@@ -211,7 +242,7 @@ function MarkdownWithArtifacts({
   if (parts.length <= 1 && parts[0]?.type === 'text') {
     return (
       <>
-        <Markdown style={mdStyles}>{content}</Markdown>
+        <Markdown style={mdStyles} rules={codeBlockRules}>{content}</Markdown>
         {artifacts && artifacts.length > 0 && (
           <ArtifactList artifacts={artifacts} colors={colors} />
         )}
@@ -351,7 +382,7 @@ function SegmentView({
           {segment.content}
         </Text>
       ) : (
-        <Markdown style={mdStyles}>{segment.content}</Markdown>
+        <Markdown style={mdStyles} rules={codeBlockRules}>{segment.content}</Markdown>
       );
 
     case 'toolCall':
@@ -610,6 +641,17 @@ const styles = StyleSheet.create({
   streamingIndicator: {
     marginTop: Spacing.xs,
     alignSelf: 'flex-start',
+  },
+  actionBar: {
+    flexDirection: 'row',
+    marginTop: Spacing.xs,
+    gap: Spacing.sm,
+  },
+  actionButton: {
+    padding: 4,
+  },
+  actionIcon: {
+    fontSize: 16,
   },
   toolCallContainer: {
     borderRadius: Radius.sm,

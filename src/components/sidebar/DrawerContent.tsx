@@ -2,7 +2,7 @@
  * Sidebar — ChatGPT style: always dark, session list, subtle server integration.
  */
 
-import React, { useCallback } from 'react';
+import React, { useCallback, useState, useMemo } from 'react';
 import {
   View,
   Text,
@@ -12,6 +12,7 @@ import {
   Alert,
   RefreshControl,
   Platform,
+  TextInput,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
@@ -51,6 +52,17 @@ export function DrawerContent(props: DrawerContentComponentProps) {
 
   const selectedServer = servers.find(s => s.id === selectedServerId);
   const isConnected = connectionState === ACPConnectionState.Connected;
+
+  // Search
+  const [searchQuery, setSearchQuery] = useState('');
+  const filteredSessions = useMemo(() => {
+    if (!searchQuery.trim()) return sessions;
+    const q = searchQuery.toLowerCase();
+    return sessions.filter(s =>
+      (s.title || '').toLowerCase().includes(q) ||
+      s.id.toLowerCase().includes(q)
+    );
+  }, [sessions, searchQuery]);
 
   const handleServerPress = useCallback(
     (id: string) => {
@@ -97,7 +109,7 @@ export function DrawerContent(props: DrawerContentComponentProps) {
   );
 
   // Group sessions by date
-  const groupedSessions = groupSessionsByDate(sessions);
+  const groupedSessions = groupSessionsByDate(filteredSessions);
 
   const renderSessionItem = useCallback(
     ({ item }: { item: SessionSummary }) => {
@@ -137,6 +149,24 @@ export function DrawerContent(props: DrawerContentComponentProps) {
           <Text style={[styles.newChatIcon, { color: colors.sidebarText, opacity: isInitialized ? 1 : 0.4 }]}>✎</Text>
           <Text style={[styles.newChatText, { color: colors.sidebarText, opacity: isInitialized ? 1 : 0.4 }]}>New chat</Text>
         </TouchableOpacity>
+      </View>
+
+      {/* Search */}
+      <View style={styles.searchContainer}>
+        <TextInput
+          style={[styles.searchInput, { color: colors.sidebarText }]}
+          placeholder="Search chats..."
+          placeholderTextColor={colors.sidebarTextSecondary}
+          value={searchQuery}
+          onChangeText={setSearchQuery}
+          autoCapitalize="none"
+          autoCorrect={false}
+        />
+        {searchQuery.length > 0 && (
+          <TouchableOpacity onPress={() => setSearchQuery('')} style={styles.searchClear}>
+            <Text style={{ color: colors.sidebarTextSecondary, fontSize: 16 }}>✕</Text>
+          </TouchableOpacity>
+        )}
       </View>
 
       {/* Server selector — compact */}
@@ -315,6 +345,25 @@ const styles = StyleSheet.create({
   header: {
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.md,
+  },
+  searchContainer: {
+    paddingHorizontal: Spacing.md,
+    paddingBottom: Spacing.sm,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  searchInput: {
+    flex: 1,
+    height: 36,
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    borderRadius: 10,
+    paddingHorizontal: Spacing.sm + 2,
+    fontSize: FontSize.footnote,
+  },
+  searchClear: {
+    position: 'absolute',
+    right: Spacing.md + 8,
+    padding: 4,
   },
   newChatButton: {
     flexDirection: 'row',

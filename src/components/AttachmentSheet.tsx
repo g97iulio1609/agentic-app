@@ -217,7 +217,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   optionSubtitle: {
-    fontSize: FontSize.small,
+    fontSize: FontSize.footnote,
     marginTop: 2,
   },
   chevron: {
