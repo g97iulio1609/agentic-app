@@ -1,20 +1,22 @@
 /**
  * Sidebar — ChatGPT style: always dark, session list, subtle server integration.
+ *
+ * Uses Tamagui layout primitives (YStack, XStack, Text, Separator) but passes
+ * sidebar-specific colors inline because the sidebar is always dark-themed and
+ * does NOT use Tamagui theme tokens ($color, $background, etc.).
  */
 
-import React, { useCallback, useState, useMemo, useRef } from 'react';
+import React, { useCallback, useState, useMemo } from 'react';
 import {
-  View,
-  Text,
   TouchableOpacity,
   FlatList,
   StyleSheet,
   Alert,
   RefreshControl,
-  Platform,
   TextInput,
   Animated,
 } from 'react-native';
+import { YStack, XStack, Text, Separator } from 'tamagui';
 import { Swipeable } from 'react-native-gesture-handler';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
@@ -123,9 +125,16 @@ export function DrawerContent(props: DrawerContentComponentProps) {
         extrapolate: 'clamp',
       });
       return (
-        <View style={styles.swipeDeleteContainer}>
-          <Animated.Text style={[styles.swipeDeleteText, { transform: [{ scale }] }]}>🗑</Animated.Text>
-        </View>
+        <XStack
+          backgroundColor="#EF4444"
+          justifyContent="center"
+          alignItems="center"
+          width={72}
+          borderRadius={Radius.sm}
+          marginBottom={1}
+        >
+          <Animated.Text style={{ fontSize: 18, transform: [{ scale }] }}>🗑</Animated.Text>
+        </XStack>
       );
     },
     [],
@@ -142,17 +151,22 @@ export function DrawerContent(props: DrawerContentComponentProps) {
           friction={2}
         >
           <TouchableOpacity
-            style={[
-              styles.sessionItem,
-              isActive && styles.sessionItemActive,
-            ]}
+            style={{
+              paddingHorizontal: Spacing.md,
+              paddingVertical: Spacing.sm + 2,
+              borderRadius: Radius.sm,
+              marginBottom: 1,
+              ...(isActive && { backgroundColor: 'rgba(255,255,255,0.10)' }),
+            }}
             onPress={() => handleSessionPress(item)}
             activeOpacity={0.6}
             accessibilityLabel={`Chat: ${item.title || 'New chat'}`}
             accessibilityHint="Swipe left to delete"
           >
             <Text
-              style={[styles.sessionTitle, { color: colors.sidebarText }]}
+              color={colors.sidebarText}
+              fontSize={FontSize.footnote}
+              fontWeight="400"
               numberOfLines={1}
             >
               {item.title || 'New chat'}
@@ -165,25 +179,47 @@ export function DrawerContent(props: DrawerContentComponentProps) {
   );
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.sidebarBackground, paddingTop: insets.top }]}>
+    <YStack flex={1} backgroundColor={colors.sidebarBackground} paddingTop={insets.top}>
       {/* New chat button */}
-      <View style={styles.header}>
+      <YStack paddingHorizontal={Spacing.md} paddingVertical={Spacing.md}>
         <TouchableOpacity
-          style={styles.newChatButton}
+          style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            paddingHorizontal: Spacing.md,
+            paddingVertical: Spacing.sm + 2,
+            borderRadius: Radius.sm,
+            gap: Spacing.sm,
+          }}
           onPress={handleNewSession}
           disabled={!isInitialized}
           activeOpacity={0.7}
           accessibilityLabel="Start new chat"
         >
-          <Text style={[styles.newChatIcon, { color: colors.sidebarText, opacity: isInitialized ? 1 : 0.4 }]}>✎</Text>
-          <Text style={[styles.newChatText, { color: colors.sidebarText, opacity: isInitialized ? 1 : 0.4 }]}>New chat</Text>
+          <Text color={colors.sidebarText} fontSize={18} opacity={isInitialized ? 1 : 0.4}>✎</Text>
+          <Text
+            color={colors.sidebarText}
+            fontSize={FontSize.subheadline}
+            fontWeight="500"
+            opacity={isInitialized ? 1 : 0.4}
+          >
+            New chat
+          </Text>
         </TouchableOpacity>
-      </View>
+      </YStack>
 
       {/* Search */}
-      <View style={styles.searchContainer}>
+      <XStack paddingHorizontal={Spacing.md} paddingBottom={Spacing.sm} alignItems="center">
         <TextInput
-          style={[styles.searchInput, { color: colors.sidebarText }]}
+          style={{
+            flex: 1,
+            height: 36,
+            backgroundColor: 'rgba(255,255,255,0.08)',
+            borderRadius: 10,
+            paddingHorizontal: Spacing.sm + 2,
+            fontSize: FontSize.footnote,
+            color: colors.sidebarText,
+          }}
           placeholder="Search chats..."
           placeholderTextColor={colors.sidebarTextSecondary}
           value={searchQuery}
@@ -192,20 +228,30 @@ export function DrawerContent(props: DrawerContentComponentProps) {
           autoCorrect={false}
         />
         {searchQuery.length > 0 && (
-          <TouchableOpacity onPress={() => setSearchQuery('')} style={styles.searchClear}>
-            <Text style={[styles.searchClearIcon, { color: colors.sidebarTextSecondary }]}>✕</Text>
+          <TouchableOpacity
+            onPress={() => setSearchQuery('')}
+            style={{ position: 'absolute', right: Spacing.md + 8, padding: 4 }}
+          >
+            <Text color={colors.sidebarTextSecondary} fontSize={16}>✕</Text>
           </TouchableOpacity>
         )}
-      </View>
+      </XStack>
 
       {/* Server selector — compact */}
-      <View style={styles.serverSection}>
+      <YStack paddingHorizontal={Spacing.md} gap={Spacing.xs}>
         {servers.length === 0 ? (
           <TouchableOpacity
-            style={[styles.addServerButton, { borderColor: colors.sidebarSeparator }]}
+            style={{
+              borderWidth: 1,
+              borderStyle: 'dashed',
+              borderColor: colors.sidebarSeparator,
+              borderRadius: Radius.sm,
+              paddingVertical: Spacing.md,
+              alignItems: 'center',
+            }}
             onPress={() => rootNav.navigate('AddServer')}
           >
-            <Text style={[styles.addServerText, { color: colors.sidebarTextSecondary }]}>
+            <Text color={colors.sidebarTextSecondary} fontSize={FontSize.footnote}>
               + Add a server
             </Text>
           </TouchableOpacity>
@@ -220,21 +266,27 @@ export function DrawerContent(props: DrawerContentComponentProps) {
               return (
                 <TouchableOpacity
                   key={server.id}
-                  style={[
-                    styles.serverChip,
-                    isSelected && styles.serverChipSelected,
-                  ]}
+                  style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    paddingHorizontal: Spacing.md,
+                    paddingVertical: Spacing.sm,
+                    borderRadius: Radius.sm,
+                    ...(isSelected && { backgroundColor: 'rgba(255,255,255,0.06)' }),
+                  }}
                   onPress={() => handleServerPress(server.id)}
                   activeOpacity={0.7}
                 >
                   {providerIcon && (
-                    <Text style={styles.providerIcon}>{providerIcon}</Text>
+                    <Text fontSize={14} marginRight={4}>{providerIcon}</Text>
                   )}
                   <Text
-                    style={[
-                      styles.serverName,
-                      { color: isSelected ? colors.sidebarText : colors.sidebarTextSecondary },
-                    ]}
+                    color={isSelected ? colors.sidebarText : colors.sidebarTextSecondary}
+                    fontSize={FontSize.footnote}
+                    fontWeight="500"
+                    flex={1}
+                    marginRight={Spacing.sm}
                     numberOfLines={1}
                   >
                     {server.name || server.host}
@@ -247,15 +299,22 @@ export function DrawerContent(props: DrawerContentComponentProps) {
             })}
 
             {selectedServer && selectedServer.serverType !== ServerType.AIProvider && (
-              <View style={styles.connectRow}>
+              <XStack
+                alignItems="center"
+                gap={Spacing.sm}
+                paddingHorizontal={Spacing.md}
+                marginTop={Spacing.xs}
+              >
                 <TouchableOpacity
-                  style={[
-                    styles.connectButton,
-                    { backgroundColor: isConnected ? 'rgba(239,68,68,0.8)' : colors.primary },
-                  ]}
+                  style={{
+                    paddingHorizontal: Spacing.lg,
+                    paddingVertical: 6,
+                    borderRadius: Radius.md,
+                    backgroundColor: isConnected ? 'rgba(239,68,68,0.8)' : colors.primary,
+                  }}
                   onPress={handleConnect}
                 >
-                  <Text style={styles.connectButtonText}>
+                  <Text color="#FFFFFF" fontSize={FontSize.caption} fontWeight="600">
                     {isConnected ? 'Disconnect' : 'Connect'}
                   </Text>
                 </TouchableOpacity>
@@ -263,25 +322,37 @@ export function DrawerContent(props: DrawerContentComponentProps) {
                   onPress={() => rootNav.navigate('AddServer')}
                   hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                 >
-                  <Text style={[styles.addIcon, { color: colors.sidebarTextSecondary }]}>+</Text>
+                  <Text color={colors.sidebarTextSecondary} fontSize={20} fontWeight="300">+</Text>
                 </TouchableOpacity>
-              </View>
+              </XStack>
             )}
 
             {selectedServer && selectedServer.serverType === ServerType.AIProvider && (
-              <View style={styles.connectRow}>
-                <Text style={[styles.readyLabel, { color: colors.primary }]}>✓ Ready</Text>
+              <XStack
+                alignItems="center"
+                gap={Spacing.sm}
+                paddingHorizontal={Spacing.md}
+                marginTop={Spacing.xs}
+              >
+                <Text color={colors.primary} fontSize={FontSize.caption} fontWeight="600" flex={1}>
+                  ✓ Ready
+                </Text>
                 <TouchableOpacity
                   onPress={() => rootNav.navigate('AddServer')}
                   hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                 >
-                  <Text style={[styles.addIcon, { color: colors.sidebarTextSecondary }]}>+</Text>
+                  <Text color={colors.sidebarTextSecondary} fontSize={20} fontWeight="300">+</Text>
                 </TouchableOpacity>
-              </View>
+              </XStack>
             )}
 
             {agentInfo && (
-              <Text style={[styles.agentName, { color: colors.sidebarTextSecondary }]} numberOfLines={1}>
+              <Text
+                color={colors.sidebarTextSecondary}
+                fontSize={FontSize.caption}
+                paddingHorizontal={Spacing.md}
+                numberOfLines={1}
+              >
                 {agentInfo.name}
               </Text>
             )}
@@ -292,7 +363,12 @@ export function DrawerContent(props: DrawerContentComponentProps) {
               const totalTools = connectedMCP.reduce((sum, s) => sum + s.toolCount, 0);
               if (totalTools === 0) return null;
               return (
-                <Text style={[styles.mcpIndicator, { color: colors.primary }]}>
+                <Text
+                  color={colors.primary}
+                  fontSize={FontSize.caption}
+                  paddingHorizontal={Spacing.md}
+                  marginTop={2}
+                >
                   🔌 {totalTools} MCP tool{totalTools !== 1 ? 's' : ''} from {connectedMCP.length} server{connectedMCP.length !== 1 ? 's' : ''}
                 </Text>
               );
@@ -301,23 +377,41 @@ export function DrawerContent(props: DrawerContentComponentProps) {
         )}
 
         {connectionError && (
-          <Text style={[styles.errorText, { color: '#F87171' }]} numberOfLines={2}>
+          <Text
+            color="#F87171"
+            fontSize={FontSize.caption}
+            paddingHorizontal={Spacing.md}
+            numberOfLines={2}
+          >
             {connectionError}
           </Text>
         )}
-      </View>
+      </YStack>
 
       {/* Separator */}
-      <View style={[styles.divider, { backgroundColor: colors.sidebarSeparator }]} />
+      <Separator
+        borderColor={colors.sidebarSeparator}
+        marginHorizontal={Spacing.md}
+        marginVertical={Spacing.md}
+      />
 
       {/* Sessions list */}
       <FlatList
         data={filteredSessions}
         keyExtractor={item => item.id}
         renderItem={renderSessionItem}
-        contentContainerStyle={filteredSessions.length === 0 ? styles.emptySessionsList : styles.sessionsList}
+        contentContainerStyle={
+          filteredSessions.length === 0
+            ? { flex: 1, justifyContent: 'center', alignItems: 'center' }
+            : { paddingHorizontal: Spacing.md }
+        }
         ListEmptyComponent={
-          <Text style={[styles.emptySessionsText, { color: colors.sidebarTextSecondary }]}>
+          <Text
+            color={colors.sidebarTextSecondary}
+            fontSize={FontSize.footnote}
+            textAlign="center"
+            paddingTop={Spacing.xxl}
+          >
             {isInitialized ? 'No chats yet' : 'Connect to start'}
           </Text>
         }
@@ -325,199 +419,26 @@ export function DrawerContent(props: DrawerContentComponentProps) {
           <RefreshControl refreshing={false} onRefresh={loadSessions} tintColor={colors.sidebarText} />
         }
         showsVerticalScrollIndicator={false}
-        style={styles.sessionsContainer}
+        style={{ flex: 1 }}
         maxToRenderPerBatch={15}
         updateCellsBatchingPeriod={50}
       />
 
       {/* Footer — settings only */}
-      <View style={[styles.footer, { borderTopColor: colors.sidebarSeparator, paddingBottom: insets.bottom + 8 }]}>
+      <XStack
+        paddingHorizontal={Spacing.md}
+        paddingTop={Spacing.sm}
+        borderTopWidth={StyleSheet.hairlineWidth}
+        borderTopColor={colors.sidebarSeparator}
+        paddingBottom={insets.bottom + 8}
+      >
         <TouchableOpacity
-          style={styles.footerButton}
+          style={{ paddingVertical: Spacing.sm, paddingHorizontal: Spacing.sm }}
           onPress={() => rootNav.navigate('Settings')}
         >
-          <Text style={[styles.footerIcon, { color: colors.sidebarText }]}>⚙</Text>
+          <Text color={colors.sidebarText} fontSize={20}>⚙</Text>
         </TouchableOpacity>
-      </View>
-    </View>
+      </XStack>
+    </YStack>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  header: {
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.md,
-  },
-  searchContainer: {
-    paddingHorizontal: Spacing.md,
-    paddingBottom: Spacing.sm,
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  searchInput: {
-    flex: 1,
-    height: 36,
-    backgroundColor: 'rgba(255,255,255,0.08)',
-    borderRadius: 10,
-    paddingHorizontal: Spacing.sm + 2,
-    fontSize: FontSize.footnote,
-  },
-  searchClear: {
-    position: 'absolute',
-    right: Spacing.md + 8,
-    padding: 4,
-  },
-  searchClearIcon: {
-    fontSize: 16,
-  },
-  newChatButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.sm + 2,
-    borderRadius: Radius.sm,
-    gap: Spacing.sm,
-  },
-  newChatIcon: {
-    fontSize: 18,
-  },
-  newChatText: {
-    fontSize: FontSize.subheadline,
-    fontWeight: '500',
-  },
-  serverSection: {
-    paddingHorizontal: Spacing.md,
-    gap: Spacing.xs,
-  },
-  addServerButton: {
-    borderWidth: 1,
-    borderStyle: 'dashed',
-    borderRadius: Radius.sm,
-    paddingVertical: Spacing.md,
-    alignItems: 'center',
-  },
-  addServerText: {
-    fontSize: FontSize.footnote,
-  },
-  serverChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.sm,
-    borderRadius: Radius.sm,
-  },
-  serverChipSelected: {
-    backgroundColor: 'rgba(255,255,255,0.06)',
-  },
-  providerIcon: {
-    fontSize: 14,
-    marginRight: 4,
-  },
-  serverName: {
-    fontSize: FontSize.footnote,
-    fontWeight: '500',
-    flex: 1,
-    marginRight: Spacing.sm,
-  },
-  connectRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.sm,
-    paddingHorizontal: Spacing.md,
-    marginTop: Spacing.xs,
-  },
-  connectButton: {
-    paddingHorizontal: Spacing.lg,
-    paddingVertical: 6,
-    borderRadius: Radius.md,
-  },
-  connectButtonText: {
-    color: '#FFFFFF',
-    fontSize: FontSize.caption,
-    fontWeight: '600',
-  },
-  readyLabel: {
-    fontSize: FontSize.caption,
-    fontWeight: '600',
-    flex: 1,
-  },
-  addIcon: {
-    fontSize: 20,
-    fontWeight: '300',
-  },
-  agentName: {
-    fontSize: FontSize.caption,
-    paddingHorizontal: Spacing.md,
-  },
-  mcpIndicator: {
-    fontSize: FontSize.caption,
-    paddingHorizontal: Spacing.md,
-    marginTop: 2,
-  },
-  errorText: {
-    fontSize: FontSize.caption,
-    paddingHorizontal: Spacing.md,
-  },
-  divider: {
-    height: StyleSheet.hairlineWidth,
-    marginHorizontal: Spacing.md,
-    marginVertical: Spacing.md,
-  },
-  sessionsContainer: {
-    flex: 1,
-  },
-  sessionsList: {
-    paddingHorizontal: Spacing.md,
-  },
-  sessionItem: {
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.sm + 2,
-    borderRadius: Radius.sm,
-    marginBottom: 1,
-  },
-  sessionItemActive: {
-    backgroundColor: 'rgba(255,255,255,0.10)',
-  },
-  sessionTitle: {
-    fontSize: FontSize.footnote,
-    fontWeight: '400',
-  },
-  emptySessionsList: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  emptySessionsText: {
-    fontSize: FontSize.footnote,
-    textAlign: 'center',
-    paddingTop: Spacing.xxl,
-  },
-  footer: {
-    paddingHorizontal: Spacing.md,
-    paddingTop: Spacing.sm,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    flexDirection: 'row',
-  },
-  footerButton: {
-    paddingVertical: Spacing.sm,
-    paddingHorizontal: Spacing.sm,
-  },
-  footerIcon: {
-    fontSize: 20,
-  },
-  swipeDeleteContainer: {
-    backgroundColor: '#EF4444',
-    justifyContent: 'center',
-    alignItems: 'center',
-    width: 72,
-    borderRadius: Radius.sm,
-    marginBottom: 1,
-  },
-  swipeDeleteText: {
-    fontSize: 18,
-  },
-});

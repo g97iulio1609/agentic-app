@@ -5,15 +5,13 @@
 
 import React, { useEffect, useCallback } from 'react';
 import {
-  View,
-  Text,
   FlatList,
   TouchableOpacity,
-  StyleSheet,
   Alert,
   Platform,
   RefreshControl,
 } from 'react-native';
+import { YStack, XStack, Text } from 'tamagui';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useAppStore } from '../stores/appStore';
@@ -102,22 +100,32 @@ export function HomeScreen() {
       return (
         <TouchableOpacity
           style={[
-            styles.serverItem,
-            { backgroundColor: colors.cardBackground, borderRadius: Radius.md, ...Platform.select({ android: { elevation: 1 } }) },
+            {
+              flexDirection: 'row',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              paddingHorizontal: Spacing.lg,
+              paddingVertical: Spacing.md,
+              marginHorizontal: Spacing.lg,
+              marginVertical: 2,
+              backgroundColor: colors.cardBackground,
+              borderRadius: Radius.md,
+              ...Platform.select({ android: { elevation: 1 } }),
+            },
             isSelected && { backgroundColor: `${colors.primary}15`, borderWidth: 1, borderColor: colors.primary },
           ]}
           onPress={() => handleServerPress(item.id)}
           activeOpacity={0.7}
           accessibilityLabel={`Server: ${item.name || item.host}`}
         >
-          <View style={styles.serverInfo}>
-            <Text style={[styles.serverName, { color: colors.text }]} numberOfLines={1}>
+          <YStack flex={1} marginRight={Spacing.sm}>
+            <Text color={colors.text} fontSize={FontSize.body} fontWeight="500" numberOfLines={1}>
               {item.name || item.host}
             </Text>
-            <Text style={[styles.serverHost, { color: colors.textTertiary }]} numberOfLines={1}>
+            <Text color={colors.textTertiary} fontSize={FontSize.caption} marginTop={2} numberOfLines={1}>
               {item.scheme}://{item.host}
             </Text>
-          </View>
+          </YStack>
           {isSelected && (
             <ConnectionBadge
               state={connectionState}
@@ -136,8 +144,18 @@ export function HomeScreen() {
       return (
         <TouchableOpacity
           style={[
-            styles.sessionItem,
-            { backgroundColor: colors.cardBackground, borderRadius: Radius.md, ...Platform.select({ android: { elevation: 1 } }) },
+            {
+              paddingHorizontal: Spacing.lg,
+              paddingVertical: Spacing.md,
+              marginHorizontal: Spacing.lg,
+              marginVertical: 2,
+              flexDirection: 'row',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              backgroundColor: colors.cardBackground,
+              borderRadius: Radius.md,
+              ...Platform.select({ android: { elevation: 1 } }),
+            },
             isSelected && { backgroundColor: `${colors.primary}15` },
           ]}
           onPress={() => handleSessionPress(item)}
@@ -145,11 +163,11 @@ export function HomeScreen() {
           activeOpacity={0.7}
           accessibilityLabel={`Session: ${item.title || 'New Session'}`}
         >
-          <Text style={[styles.sessionTitle, { color: colors.text }]} numberOfLines={1}>
+          <Text color={colors.text} fontSize={FontSize.body} flex={1} numberOfLines={1}>
             {item.title || 'New Session'}
           </Text>
           {item.updatedAt && (
-            <Text style={[styles.sessionDate, { color: colors.textTertiary }]}>
+            <Text color={colors.textTertiary} fontSize={FontSize.caption} marginLeft={Spacing.sm}>
               {new Date(item.updatedAt).toLocaleDateString()}
             </Text>
           )}
@@ -160,100 +178,143 @@ export function HomeScreen() {
   );
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.systemGray6 }]}>
+    <YStack flex={1} backgroundColor="$background">
       {/* Server List */}
-      <View style={styles.section}>
-        <View style={styles.sectionHeader}>
-          <Text style={[styles.sectionTitle, { color: colors.text }]}>Servers</Text>
+      <YStack marginBottom={Spacing.sm}>
+        <XStack
+          justifyContent="space-between"
+          alignItems="center"
+          paddingHorizontal={Spacing.lg}
+          paddingVertical={Spacing.sm}
+        >
+          <Text color="$color" fontSize={FontSize.headline} fontWeight="600">Servers</Text>
           <TouchableOpacity
             onPress={() => navigation.navigate('AddServer')}
-            style={[styles.addButton, { backgroundColor: colors.primary }]}
+            style={{
+              width: 44,
+              height: 44,
+              borderRadius: 22,
+              backgroundColor: colors.primary,
+              justifyContent: 'center',
+              alignItems: 'center',
+            }}
             accessibilityLabel="Add server"
           >
-            <Text style={[styles.addButtonText, { color: colors.surface }]}>+</Text>
+            <Text color={colors.surface} fontSize={20} fontWeight="600" marginTop={-2}>+</Text>
           </TouchableOpacity>
-        </View>
+        </XStack>
 
         {servers.length === 0 ? (
-          <View style={styles.emptyState}>
-            <Text style={[styles.emptyText, { color: colors.textTertiary }]}>
+          <YStack alignItems="center" paddingVertical={Spacing.xxl} gap={Spacing.md}>
+            <Text color="$textTertiary" fontSize={FontSize.body}>
               Get started by adding your first server
             </Text>
             <TouchableOpacity
-              style={[styles.emptyButton, { backgroundColor: colors.primary, borderRadius: Radius.md }]}
+              style={{
+                paddingHorizontal: Spacing.xl,
+                paddingVertical: Spacing.sm,
+                backgroundColor: colors.primary,
+                borderRadius: Radius.md,
+              }}
               onPress={() => navigation.navigate('AddServer')}
               accessibilityLabel="Add server"
             >
-              <Text style={[styles.emptyButtonText, { color: colors.surface }]}>Add Server</Text>
+              <Text color={colors.surface} fontSize={FontSize.body} fontWeight="600">Add Server</Text>
             </TouchableOpacity>
-          </View>
+          </YStack>
         ) : (
           <FlatList
             data={servers}
             keyExtractor={item => item.id}
             renderItem={renderServerItem}
-            style={styles.serverList}
+            style={{ maxHeight: 200 }}
           />
         )}
-      </View>
+      </YStack>
 
       {/* Selected Server Actions */}
       {selectedServer && (
-        <View style={styles.serverActions}>
+        <YStack paddingHorizontal={Spacing.lg} paddingVertical={Spacing.sm} gap={Spacing.sm}>
           {connectionError && (
             <>
-              <Text style={[styles.errorText, { color: colors.destructive }]} numberOfLines={2}>
+              <Text
+                color={colors.destructive}
+                fontSize={FontSize.caption}
+                textAlign="center"
+                numberOfLines={2}
+              >
                 {connectionError}
               </Text>
               <TouchableOpacity
-                style={[styles.retryButton, { borderColor: colors.destructive, borderRadius: Radius.md }]}
+                style={{
+                  alignSelf: 'center',
+                  paddingHorizontal: Spacing.lg,
+                  paddingVertical: Spacing.xs,
+                  borderWidth: 1,
+                  borderColor: colors.destructive,
+                  borderRadius: Radius.md,
+                }}
                 onPress={() => connect()}
                 accessibilityLabel="Retry connection"
               >
-                <Text style={[styles.retryButtonText, { color: colors.destructive }]}>Retry</Text>
+                <Text color={colors.destructive} fontSize={FontSize.caption} fontWeight="600">Retry</Text>
               </TouchableOpacity>
             </>
           )}
-          <View style={styles.actionRow}>
+          <XStack gap={Spacing.sm}>
             <TouchableOpacity
-              style={[
-                styles.actionButton,
-                { borderRadius: Radius.md },
-                isConnected
-                  ? { backgroundColor: colors.destructive }
-                  : { backgroundColor: colors.primary },
-              ]}
+              style={{
+                flex: 1,
+                paddingVertical: Spacing.sm,
+                alignItems: 'center',
+                borderRadius: Radius.md,
+                backgroundColor: isConnected ? colors.destructive : colors.primary,
+              }}
               onPress={handleConnect}
               accessibilityLabel={isConnected ? 'Disconnect from server' : 'Connect to server'}
             >
-              <Text style={[styles.actionButtonText, { color: colors.surface }]}>
+              <Text color={colors.surface} fontSize={FontSize.body} fontWeight="600">
                 {isConnected ? 'Disconnect' : 'Connect'}
               </Text>
             </TouchableOpacity>
 
             {isInitialized && (
               <TouchableOpacity
-                style={[styles.actionButton, { backgroundColor: colors.healthyGreen, borderRadius: Radius.md }]}
+                style={{
+                  flex: 1,
+                  paddingVertical: Spacing.sm,
+                  alignItems: 'center',
+                  backgroundColor: colors.healthyGreen,
+                  borderRadius: Radius.md,
+                }}
                 onPress={handleNewSession}
                 accessibilityLabel="Create new session"
               >
-                <Text style={[styles.actionButtonText, { color: colors.surface }]}>New Session</Text>
+                <Text color={colors.surface} fontSize={FontSize.body} fontWeight="600">New Session</Text>
               </TouchableOpacity>
             )}
-          </View>
+          </XStack>
 
           {agentInfo && (
-            <Text style={[styles.agentInfoText, { color: colors.textTertiary }]}>
+            <Text color="$textTertiary" fontSize={FontSize.caption} textAlign="center">
               {agentInfo.name} {agentInfo.version}
             </Text>
           )}
-        </View>
+        </YStack>
       )}
 
       {/* Session List */}
       {selectedServer && sessions.length > 0 && (
-        <View style={[styles.section, { flex: 1 }]}>
-          <Text style={[styles.sectionTitle, { color: colors.text }]}>Sessions</Text>
+        <YStack flex={1} marginBottom={Spacing.sm}>
+          <Text
+            color="$color"
+            fontSize={FontSize.headline}
+            fontWeight="600"
+            paddingHorizontal={Spacing.lg}
+            paddingVertical={Spacing.sm}
+          >
+            Sessions
+          </Text>
           <FlatList
             data={sessions}
             keyExtractor={item => item.id}
@@ -264,138 +325,10 @@ export function HomeScreen() {
                 onRefresh={loadSessions}
               />
             }
-            style={styles.sessionList}
+            style={{ flex: 1 }}
           />
-        </View>
+        </YStack>
       )}
-    </View>
+    </YStack>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  section: {
-    marginBottom: Spacing.sm,
-  },
-  sectionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.sm,
-  },
-  sectionTitle: {
-    fontSize: FontSize.headline,
-    fontWeight: '600',
-  },
-  addButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  addButtonText: {
-    fontSize: 20,
-    fontWeight: '600',
-    marginTop: -2,
-  },
-  serverList: {
-    maxHeight: 200,
-  },
-  serverItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.md,
-    marginHorizontal: Spacing.lg,
-    marginVertical: 2,
-  },
-  serverInfo: {
-    flex: 1,
-    marginRight: Spacing.sm,
-  },
-  serverName: {
-    fontSize: FontSize.body,
-    fontWeight: '500',
-  },
-  serverHost: {
-    fontSize: FontSize.caption,
-    marginTop: 2,
-  },
-  serverActions: {
-    paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.sm,
-    gap: Spacing.sm,
-  },
-  actionRow: {
-    flexDirection: 'row',
-    gap: Spacing.sm,
-  },
-  actionButton: {
-    flex: 1,
-    paddingVertical: Spacing.sm,
-    alignItems: 'center',
-  },
-  actionButtonText: {
-    fontSize: FontSize.body,
-    fontWeight: '600',
-  },
-  agentInfoText: {
-    fontSize: FontSize.caption,
-    textAlign: 'center',
-  },
-  errorText: {
-    fontSize: FontSize.caption,
-    textAlign: 'center',
-  },
-  retryButton: {
-    alignSelf: 'center',
-    paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.xs,
-    borderWidth: 1,
-  },
-  retryButtonText: {
-    fontSize: FontSize.caption,
-    fontWeight: '600',
-  },
-  sessionList: {
-    flex: 1,
-  },
-  sessionItem: {
-    paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.md,
-    marginHorizontal: Spacing.lg,
-    marginVertical: 2,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  sessionTitle: {
-    fontSize: FontSize.body,
-    flex: 1,
-  },
-  sessionDate: {
-    fontSize: FontSize.caption,
-    marginLeft: Spacing.sm,
-  },
-  emptyState: {
-    alignItems: 'center',
-    paddingVertical: Spacing.xxl,
-    gap: Spacing.md,
-  },
-  emptyText: {
-    fontSize: FontSize.body,
-  },
-  emptyButton: {
-    paddingHorizontal: Spacing.xl,
-    paddingVertical: Spacing.sm,
-  },
-  emptyButtonText: {
-    fontSize: FontSize.body,
-    fontWeight: '600',
-  },
-});

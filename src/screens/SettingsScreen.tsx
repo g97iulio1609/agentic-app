@@ -1,22 +1,21 @@
 /**
  * Settings screen — iOS Settings-style grouped cards.
+ * Uses Tamagui styled components for layout and text.
  */
 
 import React, { useState, useEffect } from 'react';
 import {
-  View,
-  Text,
   Switch,
-  StyleSheet,
   TouchableOpacity,
-  ScrollView,
   TextInput,
   Alert,
   ActivityIndicator,
+  StyleSheet,
 } from 'react-native';
+import { ScrollView, YStack, XStack, Text, Separator } from 'tamagui';
 import { useAppStore } from '../stores/appStore';
 import { useDesignSystem } from '../utils/designSystem';
-import { FontSize, Spacing, Radius, type ThemeColors } from '../utils/theme';
+import type { ThemeColors } from '../utils/theme';
 import { APP_DISPLAY_NAME, APP_VERSION } from '../constants/app';
 import { MCPAuthType, MCPConnectionState } from '../mcp/types';
 import type { MCPServerConfig } from '../mcp/types';
@@ -37,18 +36,18 @@ export function SettingsScreen() {
   }, [loadMCPServers]);
 
   return (
-    <ScrollView style={[styles.container, { backgroundColor: colors.systemGray6 }]}>
+    <ScrollView flex={1} backgroundColor="$background">
       {/* MCP Servers */}
-      <View style={[styles.section, { backgroundColor: colors.cardBackground }]}>
-        <View style={styles.sectionHeader}>
-          <Text style={[styles.sectionTitle, { color: colors.text }]}>🔌 MCP Servers</Text>
+      <YStack marginTop={16} marginHorizontal={16} borderRadius={12} padding={16} gap={12} backgroundColor="$cardBackground">
+        <XStack justifyContent="space-between" alignItems="center">
+          <Text fontSize={17} fontWeight="600" color="$color">🔌 MCP Servers</Text>
           <TouchableOpacity onPress={() => setShowAddMCP(!showAddMCP)}>
-            <Text style={[styles.clearButton, { color: colors.primary }]}>
+            <Text fontSize={13} fontWeight="600" color="$primary">
               {showAddMCP ? 'Cancel' : '+ Add'}
             </Text>
           </TouchableOpacity>
-        </View>
-        <Text style={[styles.settingSubtitle, { color: colors.textTertiary }]}>
+        </XStack>
+        <Text fontSize={12} marginTop={2} color="$textTertiary">
           Connect to external MCP servers to give AI access to tools (GitHub, Stripe, databases, etc.)
         </Text>
 
@@ -64,7 +63,7 @@ export function SettingsScreen() {
         )}
 
         {mcpServers.length === 0 && !showAddMCP && (
-          <Text style={[styles.emptyLogs, { color: colors.textTertiary }]}>
+          <Text fontSize={13} fontStyle="italic" textAlign="center" paddingVertical={16} color="$textTertiary">
             No MCP servers configured
           </Text>
         )}
@@ -88,17 +87,17 @@ export function SettingsScreen() {
             />
           );
         })}
-      </View>
+      </YStack>
 
       {/* Dev Mode */}
-      <View style={[styles.section, { backgroundColor: colors.cardBackground }]}>
-        <View style={styles.settingRow}>
-          <View style={styles.settingContent}>
-            <Text style={[styles.settingTitle, { color: colors.text }]}>Developer Mode</Text>
-            <Text style={[styles.settingSubtitle, { color: colors.textTertiary }]}>
+      <YStack marginTop={16} marginHorizontal={16} borderRadius={12} padding={16} gap={12} backgroundColor="$cardBackground">
+        <XStack justifyContent="space-between" alignItems="center">
+          <YStack flex={1}>
+            <Text fontSize={16} fontWeight="500" color="$color">Developer Mode</Text>
+            <Text fontSize={12} marginTop={2} color="$textTertiary">
               Show raw JSON-RPC messages
             </Text>
-          </View>
+          </YStack>
           <Switch
             value={devModeEnabled}
             onValueChange={toggleDevMode}
@@ -106,47 +105,47 @@ export function SettingsScreen() {
             thumbColor="#FFFFFF"
             accessibilityLabel="Developer mode"
           />
-        </View>
-      </View>
+        </XStack>
+      </YStack>
 
       {/* Developer Logs */}
       {devModeEnabled && (
-        <View style={[styles.section, { backgroundColor: colors.cardBackground }]}>
-          <View style={styles.sectionHeader}>
-            <Text style={[styles.sectionTitle, { color: colors.text }]}>Developer Logs</Text>
+        <YStack marginTop={16} marginHorizontal={16} borderRadius={12} padding={16} gap={12} backgroundColor="$cardBackground">
+          <XStack justifyContent="space-between" alignItems="center">
+            <Text fontSize={17} fontWeight="600" color="$color">Developer Logs</Text>
             <TouchableOpacity onPress={clearLogs}>
-              <Text style={[styles.clearButton, { color: colors.primary }]}>Clear</Text>
+              <Text fontSize={13} fontWeight="600" color="$primary">Clear</Text>
             </TouchableOpacity>
-          </View>
-          <View style={[styles.logsContainer, { backgroundColor: colors.codeBackground }]}>
+          </XStack>
+          <YStack maxHeight={300} borderRadius={8} padding={8} backgroundColor="$codeBackground">
             {developerLogs.length === 0 ? (
-              <Text style={[styles.emptyLogs, { color: colors.textTertiary }]}>No logs yet</Text>
+              <Text fontSize={13} fontStyle="italic" textAlign="center" paddingVertical={16} color="$textTertiary">No logs yet</Text>
             ) : (
               developerLogs
                 .slice()
                 .reverse()
                 .map((log, index) => (
-                  <Text key={index} style={[styles.logEntry, { color: colors.codeText }]} selectable>
+                  <Text key={index} fontSize={11} fontFamily="monospace" paddingVertical={1} color="$codeText" selectable>
                     {log}
                   </Text>
                 ))
             )}
-          </View>
-        </View>
+          </YStack>
+        </YStack>
       )}
 
       {/* About */}
-      <View style={[styles.section, { backgroundColor: colors.cardBackground }]}>
-        <View style={styles.aboutRow}>
-          <Text style={[styles.aboutLabel, { color: colors.text }]}>App</Text>
-          <Text style={[styles.aboutValue, { color: colors.textTertiary }]}>{APP_DISPLAY_NAME} v{APP_VERSION}</Text>
-        </View>
-        <View style={[styles.aboutSeparator, { backgroundColor: colors.separator }]} />
-        <View style={styles.aboutRow}>
-          <Text style={[styles.aboutLabel, { color: colors.text }]}>Platform</Text>
-          <Text style={[styles.aboutValue, { color: colors.textTertiary }]}>React Native (Expo)</Text>
-        </View>
-      </View>
+      <YStack marginTop={16} marginHorizontal={16} borderRadius={12} padding={16} gap={12} backgroundColor="$cardBackground">
+        <XStack justifyContent="space-between" paddingVertical={4}>
+          <Text fontSize={16} color="$color">App</Text>
+          <Text fontSize={16} color="$textTertiary">{APP_DISPLAY_NAME} v{APP_VERSION}</Text>
+        </XStack>
+        <Separator borderColor="$separator" />
+        <XStack justifyContent="space-between" paddingVertical={4}>
+          <Text fontSize={16} color="$color">Platform</Text>
+          <Text fontSize={16} color="$textTertiary">React Native (Expo)</Text>
+        </XStack>
+      </YStack>
     </ScrollView>
   );
 }
@@ -173,63 +172,63 @@ function MCPServerRow({
   const hasError = status?.state === MCPConnectionState.Error;
 
   return (
-    <View style={[styles.mcpRow, { borderColor: colors.separator }]}>
-      <View style={styles.mcpRowHeader}>
-        <View style={{ flex: 1 }}>
-          <Text style={[styles.settingTitle, { color: colors.text }]}>{server.name}</Text>
-          <Text style={[styles.mcpUrl, { color: colors.textTertiary }]} numberOfLines={1}>
+    <YStack borderWidth={StyleSheet.hairlineWidth} borderColor="$separator" borderRadius={8} padding={12} gap={8}>
+      <XStack alignItems="center" gap={8}>
+        <YStack flex={1}>
+          <Text fontSize={16} fontWeight="500" color="$color">{server.name}</Text>
+          <Text fontSize={12} marginTop={2} color="$textTertiary" numberOfLines={1}>
             {server.url}
           </Text>
-        </View>
-        <View style={styles.mcpBadges}>
+        </YStack>
+        <XStack alignItems="center" gap={4}>
           {isConnected && (
-            <View style={[styles.mcpBadge, { backgroundColor: colors.primary + '20' }]}>
-              <Text style={[styles.mcpBadgeText, { color: colors.primary }]}>
+            <XStack borderRadius={10} paddingHorizontal={8} paddingVertical={3} backgroundColor={colors.primary + '20'}>
+              <Text fontSize={11} fontWeight="600" color="$primary">
                 🔧 {status?.toolCount ?? 0} tools
               </Text>
-            </View>
+            </XStack>
           )}
           {isConnecting && <ActivityIndicator size="small" color={colors.primary} />}
           {hasError && (
-            <Text style={{ color: colors.destructive, fontSize: 12 }}>✗ Error</Text>
+            <Text color={colors.destructive} fontSize={12}>✗ Error</Text>
           )}
-        </View>
-      </View>
+        </XStack>
+      </XStack>
 
       {hasError && status?.error && (
-        <Text style={[styles.mcpError, { color: colors.destructive }]} numberOfLines={2}>
+        <Text fontSize={12} color={colors.destructive} numberOfLines={2}>
           {status.error}
         </Text>
       )}
 
-      <View style={styles.mcpActions}>
+      <XStack gap={8}>
         {isConnected ? (
           <TouchableOpacity
-            style={[styles.mcpActionBtn, { borderColor: colors.separator }]}
+            style={{ borderRadius: 8, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.separator, paddingHorizontal: 12, paddingVertical: 4 }}
             onPress={onDisconnect}
             accessibilityLabel={`Disconnect from ${server.name}`}
           >
-            <Text style={{ color: colors.textSecondary, fontSize: 13 }}>Disconnect</Text>
+            <Text fontSize={13} color="$textSecondary">Disconnect</Text>
           </TouchableOpacity>
         ) : (
           <TouchableOpacity
-            style={[styles.mcpActionBtn, { backgroundColor: colors.primary }]}
+            style={{ borderRadius: 8, borderWidth: StyleSheet.hairlineWidth, backgroundColor: colors.primary, paddingHorizontal: 12, paddingVertical: 4 }}
             onPress={onConnect}
             disabled={isConnecting}
             accessibilityLabel={`Connect to ${server.name}`}
           >
-            <Text style={{ color: colors.contrastText, fontSize: 13, fontWeight: '600' }}>Connect</Text>
+            <Text fontSize={13} fontWeight="600" color="$contrastText">Connect</Text>
           </TouchableOpacity>
         )}
         <TouchableOpacity
-          style={[styles.mcpActionBtn, { borderColor: colors.destructive }]}
+          style={{ borderRadius: 8, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.destructive, paddingHorizontal: 12, paddingVertical: 4 }}
           onPress={onRemove}
           accessibilityLabel={`Remove ${server.name}`}
         >
-          <Text style={{ color: colors.destructive, fontSize: 13 }}>Remove</Text>
+          <Text fontSize={13} color={colors.destructive}>Remove</Text>
         </TouchableOpacity>
-      </View>
-    </View>
+      </XStack>
+    </YStack>
   );
 }
 
@@ -283,9 +282,9 @@ function AddMCPServerForm({
   };
 
   return (
-    <View style={[styles.addMCPForm, { borderColor: colors.separator }]}>
+    <YStack borderWidth={StyleSheet.hairlineWidth} borderColor="$separator" borderRadius={8} padding={12} gap={8}>
       <TextInput
-        style={[styles.input, { color: colors.text, borderColor: colors.separator, backgroundColor: colors.systemGray6 }]}
+        style={{ borderWidth: StyleSheet.hairlineWidth, borderRadius: 8, paddingHorizontal: 12, paddingVertical: 8, fontSize: 16, color: colors.text, borderColor: colors.separator, backgroundColor: colors.systemGray6 }}
         placeholder="Server name (e.g., GitHub MCP)"
         placeholderTextColor={colors.textTertiary}
         value={name}
@@ -293,7 +292,7 @@ function AddMCPServerForm({
       />
 
       <TextInput
-        style={[styles.input, { color: colors.text, borderColor: colors.separator, backgroundColor: colors.systemGray6 }]}
+        style={{ borderWidth: StyleSheet.hairlineWidth, borderRadius: 8, paddingHorizontal: 12, paddingVertical: 8, fontSize: 16, color: colors.text, borderColor: colors.separator, backgroundColor: colors.systemGray6 }}
         placeholder="URL (e.g., https://mcp.example.com/mcp)"
         placeholderTextColor={colors.textTertiary}
         value={url}
@@ -303,30 +302,31 @@ function AddMCPServerForm({
       />
 
       {/* Auth Type Selector */}
-      <Text style={[styles.formLabel, { color: colors.textSecondary }]}>Authentication</Text>
-      <View style={styles.authChips}>
+      <Text fontSize={13} fontWeight="500" marginTop={4} color="$textSecondary">Authentication</Text>
+      <XStack gap={4}>
         {authTypes.map((at) => (
           <TouchableOpacity
             key={at.type}
-            style={[
-              styles.authChip,
-              {
-                backgroundColor: authType === at.type ? colors.primary : colors.systemGray5,
-                borderColor: authType === at.type ? colors.primary : colors.separator,
-              },
-            ]}
+            style={{
+              borderRadius: 14,
+              borderWidth: StyleSheet.hairlineWidth,
+              paddingHorizontal: 12,
+              paddingVertical: 5,
+              backgroundColor: authType === at.type ? colors.primary : colors.systemGray5,
+              borderColor: authType === at.type ? colors.primary : colors.separator,
+            }}
             onPress={() => setAuthType(at.type)}
           >
-            <Text style={{ color: authType === at.type ? colors.contrastText : colors.text, fontSize: 13 }}>
+            <Text fontSize={13} color={authType === at.type ? '$contrastText' : '$color'}>
               {at.label}
             </Text>
           </TouchableOpacity>
         ))}
-      </View>
+      </XStack>
 
       {authType === MCPAuthType.Bearer && (
         <TextInput
-          style={[styles.input, { color: colors.text, borderColor: colors.separator, backgroundColor: colors.systemGray6 }]}
+          style={{ borderWidth: StyleSheet.hairlineWidth, borderRadius: 8, paddingHorizontal: 12, paddingVertical: 8, fontSize: 16, color: colors.text, borderColor: colors.separator, backgroundColor: colors.systemGray6 }}
           placeholder="Bearer token"
           placeholderTextColor={colors.textTertiary}
           value={token}
@@ -339,7 +339,7 @@ function AddMCPServerForm({
       {authType === MCPAuthType.ApiKey && (
         <>
           <TextInput
-            style={[styles.input, { color: colors.text, borderColor: colors.separator, backgroundColor: colors.systemGray6 }]}
+            style={{ borderWidth: StyleSheet.hairlineWidth, borderRadius: 8, paddingHorizontal: 12, paddingVertical: 8, fontSize: 16, color: colors.text, borderColor: colors.separator, backgroundColor: colors.systemGray6 }}
             placeholder="Header name (default: X-API-Key)"
             placeholderTextColor={colors.textTertiary}
             value={headerName}
@@ -347,7 +347,7 @@ function AddMCPServerForm({
             autoCapitalize="none"
           />
           <TextInput
-            style={[styles.input, { color: colors.text, borderColor: colors.separator, backgroundColor: colors.systemGray6 }]}
+            style={{ borderWidth: StyleSheet.hairlineWidth, borderRadius: 8, paddingHorizontal: 12, paddingVertical: 8, fontSize: 16, color: colors.text, borderColor: colors.separator, backgroundColor: colors.systemGray6 }}
             placeholder="API key value"
             placeholderTextColor={colors.textTertiary}
             value={apiKey}
@@ -359,8 +359,8 @@ function AddMCPServerForm({
       )}
 
       {/* Auto-connect toggle */}
-      <View style={styles.settingRow}>
-        <Text style={[styles.formLabel, { color: colors.textSecondary }]}>Auto-connect on startup</Text>
+      <XStack justifyContent="space-between" alignItems="center">
+        <Text fontSize={13} fontWeight="500" color="$textSecondary">Auto-connect on startup</Text>
         <Switch
           value={autoConnect}
           onValueChange={setAutoConnect}
@@ -368,19 +368,19 @@ function AddMCPServerForm({
           thumbColor="#FFFFFF"
           accessibilityLabel="Auto-connect on startup"
         />
-      </View>
+      </XStack>
 
       {/* Actions */}
-      <View style={styles.formActions}>
+      <XStack justifyContent="flex-end" gap={8} marginTop={8}>
         <TouchableOpacity
-          style={[styles.formBtn, { borderColor: colors.separator }]}
+          style={{ borderRadius: 8, borderWidth: StyleSheet.hairlineWidth, paddingHorizontal: 16, paddingVertical: 8, borderColor: colors.separator }}
           onPress={onCancel}
           accessibilityLabel="Cancel adding MCP server"
         >
-          <Text style={{ color: colors.textSecondary }}>Cancel</Text>
+          <Text color="$textSecondary">Cancel</Text>
         </TouchableOpacity>
         <TouchableOpacity
-          style={[styles.formBtn, { backgroundColor: colors.primary }]}
+          style={{ borderRadius: 8, borderWidth: StyleSheet.hairlineWidth, paddingHorizontal: 16, paddingVertical: 8, borderColor: 'transparent', backgroundColor: colors.primary }}
           onPress={handleSave}
           disabled={saving}
           accessibilityLabel="Add and connect MCP server"
@@ -388,166 +388,10 @@ function AddMCPServerForm({
           {saving ? (
             <ActivityIndicator size="small" color={colors.contrastText} />
           ) : (
-            <Text style={{ color: colors.contrastText, fontWeight: '600' }}>Add & Connect</Text>
+            <Text fontWeight="600" color="$contrastText">Add & Connect</Text>
           )}
         </TouchableOpacity>
-      </View>
-    </View>
+      </XStack>
+    </YStack>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  section: {
-    marginTop: Spacing.lg,
-    marginHorizontal: Spacing.lg,
-    borderRadius: Radius.md,
-    padding: Spacing.lg,
-    gap: Spacing.md,
-  },
-  sectionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  sectionTitle: {
-    fontSize: FontSize.headline,
-    fontWeight: '600',
-  },
-  settingRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  settingContent: {
-    flex: 1,
-  },
-  settingTitle: {
-    fontSize: FontSize.body,
-    fontWeight: '500',
-  },
-  settingSubtitle: {
-    fontSize: FontSize.caption,
-    marginTop: 2,
-  },
-  clearButton: {
-    fontSize: FontSize.footnote,
-    fontWeight: '600',
-  },
-  logsContainer: {
-    maxHeight: 300,
-    borderRadius: Radius.sm,
-    padding: Spacing.sm,
-  },
-  emptyLogs: {
-    fontSize: FontSize.footnote,
-    fontStyle: 'italic',
-    textAlign: 'center',
-    paddingVertical: Spacing.lg,
-  },
-  logEntry: {
-    fontSize: 11,
-    fontFamily: 'monospace',
-    paddingVertical: 1,
-  },
-  aboutRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingVertical: Spacing.xs,
-  },
-  aboutSeparator: {
-    height: StyleSheet.hairlineWidth,
-  },
-  aboutLabel: {
-    fontSize: FontSize.body,
-  },
-  aboutValue: {
-    fontSize: FontSize.body,
-  },
-  // MCP styles
-  mcpRow: {
-    borderWidth: StyleSheet.hairlineWidth,
-    borderRadius: Radius.sm,
-    padding: Spacing.md,
-    gap: Spacing.sm,
-  },
-  mcpRowHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.sm,
-  },
-  mcpUrl: {
-    fontSize: FontSize.caption,
-    marginTop: 2,
-  },
-  mcpBadges: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xs,
-  },
-  mcpBadge: {
-    borderRadius: 10,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-  },
-  mcpBadgeText: {
-    fontSize: 11,
-    fontWeight: '600',
-  },
-  mcpError: {
-    fontSize: FontSize.caption,
-  },
-  mcpActions: {
-    flexDirection: 'row',
-    gap: Spacing.sm,
-  },
-  mcpActionBtn: {
-    borderRadius: Radius.sm,
-    borderWidth: StyleSheet.hairlineWidth,
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.xs,
-  },
-  addMCPForm: {
-    borderWidth: StyleSheet.hairlineWidth,
-    borderRadius: Radius.sm,
-    padding: Spacing.md,
-    gap: Spacing.sm,
-  },
-  input: {
-    borderWidth: StyleSheet.hairlineWidth,
-    borderRadius: Radius.sm,
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.sm,
-    fontSize: FontSize.body,
-  },
-  formLabel: {
-    fontSize: FontSize.footnote,
-    fontWeight: '500',
-    marginTop: Spacing.xs,
-  },
-  authChips: {
-    flexDirection: 'row',
-    gap: Spacing.xs,
-  },
-  authChip: {
-    borderRadius: 14,
-    borderWidth: StyleSheet.hairlineWidth,
-    paddingHorizontal: 12,
-    paddingVertical: 5,
-  },
-  formActions: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    gap: Spacing.sm,
-    marginTop: Spacing.sm,
-  },
-  formBtn: {
-    borderRadius: Radius.sm,
-    borderWidth: StyleSheet.hairlineWidth,
-    paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.sm,
-    borderColor: 'transparent',
-  },
-});

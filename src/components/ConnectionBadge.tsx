@@ -3,9 +3,9 @@
  */
 
 import React from 'react';
-import { View, StyleSheet } from 'react-native';
+import { YStack } from 'tamagui';
 import { ACPConnectionState } from '../acp/models/types';
-import { useDesignSystem, layout } from '../utils/designSystem';
+import { useDesignSystem } from '../utils/designSystem';
 import type { ThemeColors } from '../utils/theme';
 
 interface Props {
@@ -18,9 +18,9 @@ export const ConnectionBadge = React.memo(function ConnectionBadge({ state, isIn
   const color = getDotColor(state, isInitialized, colors);
 
   return (
-    <View style={layout.center}>
-      <View style={[styles.dot, { backgroundColor: color }]} />
-    </View>
+    <YStack justifyContent="center" alignItems="center">
+      <YStack width={6} height={6} borderRadius={3} backgroundColor={color} />
+    </YStack>
   );
 });
 
@@ -37,11 +37,3 @@ function getDotColor(state: ACPConnectionState, isInitialized: boolean, colors: 
       return colors.systemGray3;
   }
 }
-
-const styles = StyleSheet.create({
-  dot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-  },
-});
