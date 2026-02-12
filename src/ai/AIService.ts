@@ -9,8 +9,8 @@ import { buildSearchTools } from '../search/SearchTools';
 import {
   DeepAgent,
   ApproximateTokenCounter,
-  InMemoryAdapter,
   VirtualFilesystemRN,
+  AsyncStorageMemoryAdapter,
 } from '../deep-agents';
 import type { AgentEvent } from '../deep-agents';
 
@@ -250,7 +250,7 @@ export function streamChat(
         maxSteps: 15,
       })
         .withFilesystem(new VirtualFilesystemRN())
-        .withMemory(new InMemoryAdapter())
+        .withMemory(new AsyncStorageMemoryAdapter())
         .withTokenCounter(new ApproximateTokenCounter())
         .withPlanning()
         .withSubagents({ maxDepth: 2, timeoutMs: 120_000 });
