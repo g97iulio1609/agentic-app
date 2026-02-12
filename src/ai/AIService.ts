@@ -239,13 +239,17 @@ export function streamChat(
       if (hasTools && !systemPrompt) {
         const parts: string[] = ['You are a helpful AI assistant.'];
         if (hasSearchTools) {
-          parts.push('You have access to web search tools. When the user asks about current events, recent news, real-time data, or anything you\'re unsure about, use the web_search tool to find accurate and up-to-date information. After searching, use read_webpage to get detailed content from relevant URLs.');
+          parts.push(
+            'You have access to web search and scraping tools. ' +
+            'When the user asks about current events, recent news, real-time data, ' +
+            'or anything you\'re unsure about, use the web_search tool to find accurate information. ' +
+            'Use read_webpage to get detailed content from a specific URL. ' +
+            'Use scrape_many to read multiple pages in parallel when you need to compare sources or gather broad information.'
+          );
         }
-        if (toolNames.length > (hasSearchTools ? 2 : 0)) {
-          const otherTools = toolNames.filter(t => t !== 'web_search' && t !== 'read_webpage');
-          if (otherTools.length > 0) {
-            parts.push(`You also have access to these tools: ${otherTools.join(', ')}. Use them when appropriate.`);
-          }
+        const otherTools = toolNames.filter(t => t !== 'web_search' && t !== 'read_webpage' && t !== 'scrape_many');
+        if (otherTools.length > 0) {
+          parts.push(`You also have access to these tools: ${otherTools.join(', ')}. Use them when appropriate.`);
         }
         systemPrompt = parts.join(' ');
       }
