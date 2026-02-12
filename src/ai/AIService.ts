@@ -3,9 +3,16 @@
  * Provider SDKs are lazily loaded to reduce initial bundle size.
  */
 
-import { streamText, stepCountIs, type ModelMessage, type LanguageModel, type JSONValue } from 'ai';
+import { type ModelMessage, type LanguageModel, type JSONValue } from 'ai';
 import { buildMCPTools } from '../mcp/MCPToolAdapter';
 import { buildSearchTools } from '../search/SearchTools';
+import {
+  DeepAgent,
+  ApproximateTokenCounter,
+  InMemoryAdapter,
+  VirtualFilesystemRN,
+} from '../deep-agents';
+import type { AgentEvent } from '../deep-agents';
 
 // React Native needs expo/fetch for streaming support
 let expoFetch: typeof globalThis.fetch | undefined;
@@ -203,8 +210,9 @@ function toCoreMessages(messages: ChatMessage[]): ModelMessage[] {
 // ── streaming chat ───────────────────────────────────────────────────────────
 
 /**
- * Stream a chat completion. Returns an `AbortController` the caller can use to
- * cancel the request. Captures both text and reasoning stream parts.
+ * Stream a chat completion using DeepAgent. Returns an `AbortController` the
+ * caller can use to cancel. The AI autonomously decides whether to use
+ * planning, subagents, or simple response based on task complexity.
  */
 export function streamChat(
   messages: ChatMessage[],
@@ -216,10 +224,10 @@ export function streamChat(
   onReasoning?: (text: string) => void,
   onToolCall?: (toolName: string, args: string) => void,
   onToolResult?: (toolName: string, result: string) => void,
+  onAgentEvent?: (event: AgentEvent) => void,
 ): AbortController {
   const controller = new AbortController();
 
-  // Fire-and-forget async IIFE — errors are forwarded via onError.
   (async () => {
     try {
       const model = await createModel(config, apiKey);
@@ -229,61 +237,43 @@ export function streamChat(
       // Build tools (MCP + search)
       const mcpTools = buildMCPTools();
       const searchTools = config.webSearchEnabled !== false ? buildSearchTools() : {};
-      const allTools = { ...mcpTools, ...searchTools };
-      const hasTools = Object.keys(allTools).length > 0;
+      const externalTools = { ...mcpTools, ...searchTools };
+      const hasTools = Object.keys(externalTools).length > 0;
 
-      // Build system prompt — inject tool awareness when tools are available
-      const toolNames = Object.keys(allTools);
-      const hasSearchTools = 'web_search' in allTools;
-      let systemPrompt = config.systemPrompt || '';
-      if (hasTools && !systemPrompt) {
-        // Current date/time from device
-        const now = new Date();
-        const dateStr = now.toLocaleDateString('en-US', {
-          weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
-        });
-        const timeStr = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
-        const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+      // Build system prompt
+      const systemPrompt = buildSystemPrompt(config, externalTools);
 
-        const parts: string[] = [
-          'You are a helpful AI assistant.',
-          `Current date and time: ${dateStr}, ${timeStr} (${timezone}).`,
-          'Always respond in the same language as the user\'s message unless explicitly asked to use a different language.',
-        ];
-        if (hasSearchTools) {
-          parts.push(
-            'You have access to web search and scraping tools. ' +
-            'When the user asks about current events, recent news, real-time data, ' +
-            'or anything you\'re unsure about, use the web_search tool to find accurate information. ' +
-            'Use read_webpage to get detailed content from a specific URL. ' +
-            'Use scrape_many to read multiple pages in parallel when you need to compare sources or gather broad information.'
-          );
-        }
-        const otherTools = toolNames.filter(t => t !== 'web_search' && t !== 'read_webpage' && t !== 'scrape_many');
-        if (otherTools.length > 0) {
-          parts.push(`You also have access to these tools: ${otherTools.join(', ')}. Use them when appropriate.`);
-        }
-        systemPrompt = parts.join(' ');
-      } else if (systemPrompt) {
-        // Even with custom prompt, inject date/time context
-        const now = new Date();
-        const dateStr = now.toLocaleDateString('en-US', {
-          weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
-        });
-        const timeStr = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
-        const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-        systemPrompt = `Current date and time: ${dateStr}, ${timeStr} (${timezone}).\n\n${systemPrompt}`;
+      // Create DeepAgent with all capabilities
+      const builder = DeepAgent.create({
+        model,
+        instructions: systemPrompt,
+        maxSteps: 15,
+      })
+        .withFilesystem(new VirtualFilesystemRN())
+        .withMemory(new InMemoryAdapter())
+        .withTokenCounter(new ApproximateTokenCounter())
+        .withPlanning()
+        .withSubagents({ maxDepth: 2, timeoutMs: 120_000 });
+
+      // Add external tools (search + MCP)
+      if (hasTools) {
+        builder.withTools(externalTools);
       }
 
-      const result = streamText({
-        model,
-        messages: coreMessages,
-        system: systemPrompt || undefined,
-        temperature: config.temperature,
+      // Wire event bus for UI updates
+      if (onAgentEvent) {
+        builder.on('*', onAgentEvent);
+      }
+
+      const agent = builder.build();
+
+      // Use DeepAgent.stream() — returns StreamTextResult (same as streamText)
+      // Cast needed: DeepAgent types are narrow but ToolLoopAgent.stream() accepts full AgentStreamParameters
+      const result = await agent.stream({
+        messages: coreMessages as Array<{ role: string; content: unknown }>,
         abortSignal: controller.signal,
-        ...(hasTools ? { tools: allTools, stopWhen: stepCountIs(10) } : {}),
         ...(Object.keys(providerOptions).length > 0 ? { providerOptions } : {}),
-      });
+      } as any);
 
       for await (const part of result.fullStream) {
         if (controller.signal.aborted) break;
@@ -320,13 +310,13 @@ export function streamChat(
       }
 
       const reason = await result.finishReason;
+      await agent.dispose();
       onComplete(reason ?? 'unknown');
     } catch (err: unknown) {
       if (controller.signal.aborted) {
         onComplete('abort');
         return;
       }
-      // Provide user-friendly error messages for common issues
       const msg = err instanceof Error ? err.message : String(err);
       if (msg.includes('image input')) {
         onError(new Error(`This model doesn't support image input. Try a vision model (e.g. gpt-4o, gemini-2.5-flash, claude-sonnet-4).`));
@@ -337,6 +327,62 @@ export function streamChat(
   })();
 
   return controller;
+}
+
+// ── system prompt builder ────────────────────────────────────────────────────
+
+function buildSystemPrompt(
+  config: AIProviderConfig,
+  tools: Record<string, unknown>,
+): string {
+  const toolNames = Object.keys(tools);
+  const hasSearchTools = 'web_search' in tools;
+  let systemPrompt = config.systemPrompt || '';
+
+  // Current date/time from device
+  const now = new Date();
+  const dateStr = now.toLocaleDateString('en-US', {
+    weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
+  });
+  const timeStr = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+  const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+
+  if (!systemPrompt) {
+    const parts: string[] = [
+      'You are a helpful AI assistant with agentic capabilities.',
+      `Current date and time: ${dateStr}, ${timeStr} (${timezone}).`,
+      'Always respond in the same language as the user\'s message unless explicitly asked to use a different language.',
+      '',
+      '## Task Complexity Guidelines',
+      'For simple questions (greetings, quick facts, translations, small tasks), respond directly without using planning tools.',
+      'For complex multi-step tasks (research, analysis, building plans, comparing multiple sources), use the write_todos and review_todos tools to decompose the work into steps and track progress.',
+      'For tasks that can be parallelized, use the task tool to delegate sub-tasks to specialized sub-agents.',
+      '',
+      '## File Tools',
+      'You can read, write, edit, and search files in a virtual workspace using ls, read_file, write_file, edit_file, glob, and grep tools.',
+    ];
+    if (hasSearchTools) {
+      parts.push(
+        '',
+        '## Web Search',
+        'Use web_search for current events, recent news, real-time data, or anything you\'re unsure about.',
+        'Use read_webpage to get detailed content from a specific URL.',
+        'Use scrape_many to read multiple pages in parallel.',
+      );
+    }
+    const otherTools = toolNames.filter(t =>
+      !['web_search', 'read_webpage', 'scrape_many'].includes(t)
+    );
+    if (otherTools.length > 0) {
+      parts.push(`\n## Additional Tools\nYou also have: ${otherTools.join(', ')}.`);
+    }
+    systemPrompt = parts.join('\n');
+  } else {
+    // Custom prompt: prepend date/time
+    systemPrompt = `Current date and time: ${dateStr}, ${timeStr} (${timezone}).\n\n${systemPrompt}`;
+  }
+
+  return systemPrompt;
 }
 
 // ── provider options builder ─────────────────────────────────────────────────

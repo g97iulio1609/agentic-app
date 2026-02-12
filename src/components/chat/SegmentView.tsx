@@ -92,6 +92,15 @@ export const SegmentView = React.memo(function SegmentView({ segment, colors, is
         </TouchableOpacity>
       );
 
+    case 'agentEvent':
+      return (
+        <XStack alignItems="center" gap={6} paddingVertical={3}>
+          <Text fontSize={FontSize.caption} color={colors.textTertiary}>
+            {segment.label}
+          </Text>
+        </XStack>
+      );
+
     default:
       return null;
   }

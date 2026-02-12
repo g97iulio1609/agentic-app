@@ -99,7 +99,8 @@ export type MessageSegment =
   | { type: 'toolCall'; toolName: string; input: string; result?: string; isComplete: boolean }
   | { type: 'thought'; content: string }
   | { type: 'image'; url: string; alt?: string }
-  | { type: 'artifact'; artifactId: string };
+  | { type: 'artifact'; artifactId: string }
+  | { type: 'agentEvent'; eventType: string; label: string; detail?: string };
 
 export interface ACPClientError {
   code: string;

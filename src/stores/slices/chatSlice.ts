@@ -189,6 +189,22 @@ export const createChatSlice: StateCreator<AppState & AppActions, [], [], ChatSl
               }),
             }));
           },
+          // onAgentEvent
+          (event) => {
+            const label = agentEventLabel(event.type, event.data);
+            if (!label) return;
+            const segment: import('../../acp/models/types').MessageSegment = {
+              type: 'agentEvent',
+              eventType: event.type,
+              label,
+              detail: typeof event.data === 'object' ? JSON.stringify(event.data) : undefined,
+            };
+            set(s => ({
+              chatMessages: updateMessageById(s.chatMessages, assistantId, m => ({
+                ...m, segments: [...(m.segments ?? []), segment],
+              })),
+            }));
+          },
         ));
         return;
       } catch (error) {
@@ -272,3 +288,25 @@ export const createChatSlice: StateCreator<AppState & AppActions, [], [], ChatSl
     set({ promptText: text });
   },
 });
+
+// Maps agent event types to user-visible labels
+function agentEventLabel(type: string, data: unknown): string | null {
+  switch (type) {
+    case 'planning:update':
+      return '📋 Planning updated';
+    case 'subagent:spawn':
+      return `🔀 Sub-agent started`;
+    case 'subagent:complete':
+      return `✅ Sub-agent completed`;
+    case 'step:start': {
+      const d = data as { stepIndex?: number } | undefined;
+      return `⚡ Step ${(d?.stepIndex ?? 0) + 1}`;
+    }
+    case 'context:summarize':
+      return '📝 Context summarized';
+    case 'checkpoint:save':
+      return '💾 Checkpoint saved';
+    default:
+      return null;
+  }
+}
