@@ -237,7 +237,19 @@ export function streamChat(
       const hasSearchTools = 'web_search' in allTools;
       let systemPrompt = config.systemPrompt || '';
       if (hasTools && !systemPrompt) {
-        const parts: string[] = ['You are a helpful AI assistant.'];
+        // Current date/time from device
+        const now = new Date();
+        const dateStr = now.toLocaleDateString('en-US', {
+          weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
+        });
+        const timeStr = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+        const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+
+        const parts: string[] = [
+          'You are a helpful AI assistant.',
+          `Current date and time: ${dateStr}, ${timeStr} (${timezone}).`,
+          'Always respond in the same language as the user\'s message unless explicitly asked to use a different language.',
+        ];
         if (hasSearchTools) {
           parts.push(
             'You have access to web search and scraping tools. ' +
@@ -252,6 +264,15 @@ export function streamChat(
           parts.push(`You also have access to these tools: ${otherTools.join(', ')}. Use them when appropriate.`);
         }
         systemPrompt = parts.join(' ');
+      } else if (systemPrompt) {
+        // Even with custom prompt, inject date/time context
+        const now = new Date();
+        const dateStr = now.toLocaleDateString('en-US', {
+          weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
+        });
+        const timeStr = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+        const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+        systemPrompt = `Current date and time: ${dateStr}, ${timeStr} (${timezone}).\n\n${systemPrompt}`;
       }
 
       const result = streamText({
