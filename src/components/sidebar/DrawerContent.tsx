@@ -2,7 +2,7 @@
  * Sidebar — ChatGPT style: always dark, session list, subtle server integration.
  */
 
-import React, { useCallback, useState, useMemo } from 'react';
+import React, { useCallback, useState, useMemo, useRef } from 'react';
 import {
   View,
   Text,
@@ -13,7 +13,9 @@ import {
   RefreshControl,
   Platform,
   TextInput,
+  Animated,
 } from 'react-native';
+import { Swipeable } from 'react-native-gesture-handler';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import type { DrawerContentComponentProps } from '@react-navigation/drawer';
@@ -112,31 +114,53 @@ export function DrawerContent(props: DrawerContentComponentProps) {
   // Group sessions by date
   const groupedSessions = groupSessionsByDate(filteredSessions);
 
+  const renderDeleteAction = useCallback(
+    (_progress: Animated.AnimatedInterpolation<number>, dragX: Animated.AnimatedInterpolation<number>) => {
+      const scale = dragX.interpolate({
+        inputRange: [-80, -40, 0],
+        outputRange: [1, 0.8, 0],
+        extrapolate: 'clamp',
+      });
+      return (
+        <View style={styles.swipeDeleteContainer}>
+          <Animated.Text style={[styles.swipeDeleteText, { transform: [{ scale }] }]}>🗑</Animated.Text>
+        </View>
+      );
+    },
+    [],
+  );
+
   const renderSessionItem = useCallback(
     ({ item }: { item: SessionSummary }) => {
       const isActive = item.id === selectedSessionId;
       return (
-        <TouchableOpacity
-          style={[
-            styles.sessionItem,
-            isActive && styles.sessionItemActive,
-          ]}
-          onPress={() => handleSessionPress(item)}
-          onLongPress={() => handleDeleteSession(item.id)}
-          activeOpacity={0.6}
-          accessibilityLabel={`Chat: ${item.title || 'New chat'}`}
-          accessibilityHint="Long press to delete"
+        <Swipeable
+          renderRightActions={renderDeleteAction}
+          onSwipeableOpen={() => handleDeleteSession(item.id)}
+          overshootRight={false}
+          friction={2}
         >
-          <Text
-            style={[styles.sessionTitle, { color: colors.sidebarText }]}
-            numberOfLines={1}
+          <TouchableOpacity
+            style={[
+              styles.sessionItem,
+              isActive && styles.sessionItemActive,
+            ]}
+            onPress={() => handleSessionPress(item)}
+            activeOpacity={0.6}
+            accessibilityLabel={`Chat: ${item.title || 'New chat'}`}
+            accessibilityHint="Swipe left to delete"
           >
-            {item.title || 'New chat'}
-          </Text>
-        </TouchableOpacity>
+            <Text
+              style={[styles.sessionTitle, { color: colors.sidebarText }]}
+              numberOfLines={1}
+            >
+              {item.title || 'New chat'}
+            </Text>
+          </TouchableOpacity>
+        </Swipeable>
       );
     },
-    [selectedSessionId, colors, handleSessionPress, handleDeleteSession],
+    [selectedSessionId, colors, handleSessionPress, handleDeleteSession, renderDeleteAction],
   );
 
   return (
@@ -483,5 +507,16 @@ const styles = StyleSheet.create({
   },
   footerIcon: {
     fontSize: 20,
+  },
+  swipeDeleteContainer: {
+    backgroundColor: '#EF4444',
+    justifyContent: 'center',
+    alignItems: 'center',
+    width: 72,
+    borderRadius: Radius.sm,
+    marginBottom: 1,
+  },
+  swipeDeleteText: {
+    fontSize: 18,
   },
 });
