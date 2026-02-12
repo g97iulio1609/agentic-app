@@ -232,10 +232,28 @@ export function streamChat(
       const allTools = { ...mcpTools, ...searchTools };
       const hasTools = Object.keys(allTools).length > 0;
 
+      // Build system prompt — inject tool awareness when tools are available
+      const toolNames = Object.keys(allTools);
+      const hasSearchTools = 'web_search' in allTools;
+      let systemPrompt = config.systemPrompt || '';
+      if (hasTools && !systemPrompt) {
+        const parts: string[] = ['You are a helpful AI assistant.'];
+        if (hasSearchTools) {
+          parts.push('You have access to web search tools. When the user asks about current events, recent news, real-time data, or anything you\'re unsure about, use the web_search tool to find accurate and up-to-date information. After searching, use read_webpage to get detailed content from relevant URLs.');
+        }
+        if (toolNames.length > (hasSearchTools ? 2 : 0)) {
+          const otherTools = toolNames.filter(t => t !== 'web_search' && t !== 'read_webpage');
+          if (otherTools.length > 0) {
+            parts.push(`You also have access to these tools: ${otherTools.join(', ')}. Use them when appropriate.`);
+          }
+        }
+        systemPrompt = parts.join(' ');
+      }
+
       const result = streamText({
         model,
         messages: coreMessages,
-        system: config.systemPrompt,
+        system: systemPrompt || undefined,
         temperature: config.temperature,
         abortSignal: controller.signal,
         ...(hasTools ? { tools: allTools, stopWhen: stepCountIs(10) } : {}),
