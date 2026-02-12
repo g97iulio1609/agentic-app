@@ -24,6 +24,7 @@ import { useTheme, FontSize, Spacing, Radius } from '../../utils/theme';
 import { APP_DISPLAY_NAME } from '../../constants/app';
 import { getProviderInfo } from '../../ai/providers';
 import { MCPConnectionState } from '../../mcp/types';
+import { groupSessionsByDate } from '../../utils/sessionUtils';
 
 export function DrawerContent(props: DrawerContentComponentProps) {
   const { colors } = useTheme();
@@ -297,6 +298,8 @@ export function DrawerContent(props: DrawerContentComponentProps) {
         }
         showsVerticalScrollIndicator={false}
         style={styles.sessionsContainer}
+        maxToRenderPerBatch={15}
+        updateCellsBatchingPeriod={50}
       />
 
       {/* Footer — settings only */}
@@ -310,32 +313,6 @@ export function DrawerContent(props: DrawerContentComponentProps) {
       </View>
     </View>
   );
-}
-
-function groupSessionsByDate(sessions: SessionSummary[]): { label: string; data: SessionSummary[] }[] {
-  if (sessions.length === 0) return [];
-
-  const now = new Date();
-  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  const yesterday = new Date(today.getTime() - 86400000);
-  const weekAgo = new Date(today.getTime() - 7 * 86400000);
-
-  const groups: Record<string, SessionSummary[]> = {};
-
-  for (const session of sessions) {
-    const d = session.updatedAt ? new Date(session.updatedAt) : new Date();
-    let label: string;
-    if (d >= today) label = 'Today';
-    else if (d >= yesterday) label = 'Yesterday';
-    else if (d >= weekAgo) label = 'Previous 7 days';
-    else label = 'Older';
-
-    if (!groups[label]) groups[label] = [];
-    groups[label].push(session);
-  }
-
-  const order = ['Today', 'Yesterday', 'Previous 7 days', 'Older'];
-  return order.filter(l => groups[l]).map(l => ({ label: l, data: groups[l] }));
 }
 
 const styles = StyleSheet.create({

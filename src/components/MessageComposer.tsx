@@ -23,24 +23,7 @@ import { useFilePicker } from '../hooks/useFilePicker';
 import { AttachmentSheet } from './AttachmentSheet';
 
 // File type icons
-function getFileIcon(mediaType: string): string {
-  if (mediaType.startsWith('image/')) return '🖼️';
-  if (mediaType === 'application/pdf') return '📄';
-  if (mediaType.includes('spreadsheet') || mediaType.includes('excel') || mediaType === 'text/csv') return '📊';
-  if (mediaType.includes('word') || mediaType.includes('document')) return '📝';
-  if (mediaType.startsWith('text/')) return '📃';
-  if (mediaType === 'application/json') return '{ }';
-  if (mediaType.startsWith('audio/')) return '🎵';
-  if (mediaType.startsWith('video/')) return '🎬';
-  return '📎';
-}
-
-function formatSize(bytes?: number): string {
-  if (!bytes) return '';
-  if (bytes < 1024) return `${bytes} B`;
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`;
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-}
+import { getFileIcon, formatSize } from '../utils/fileUtils';
 
 interface Props {
   value: string;

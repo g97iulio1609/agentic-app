@@ -185,6 +185,10 @@ export function SessionDetailScreen() {
         scrollEventThrottle={100}
         keyboardDismissMode="interactive"
         keyboardShouldPersistTaps="handled"
+        maxToRenderPerBatch={10}
+        updateCellsBatchingPeriod={50}
+        windowSize={15}
+        removeClippedSubviews={Platform.OS === 'android'}
       />
 
       {stopReason && !isStreaming && (
